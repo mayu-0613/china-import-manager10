@@ -15,7 +15,7 @@ const SearchComponent = () => {
   };
 
   // ここにAPIキーを直接書きます
-  const apiKey = 'AIzaSyADoacBs6vbxD-4jNEPU50yZIgTA00yTJc'; // 実際のAPIキーに置き換えてください
+  const apiKey = process.env.REACT_APP_API_KEY;
 
   const handleSearch = async () => {
     const spreadsheetId = sheetIds[selectedSheet];
