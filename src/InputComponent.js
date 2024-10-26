@@ -18,6 +18,8 @@ const InputComponent = ({ accessToken }) => {
   });
   const [showAdditionalInputs, setShowAdditionalInputs] = useState(false);
   const [inputRowIndex, setInputRowIndex] = useState(null);
+  const [akValue, setAkValue] = useState(''); // AK列のデータを保存
+  const [alValue, setAlValue] = useState(''); // AL列のデータを保存
 
   const sheetIds = {
     '130未来物販': '1p44UmyhbrEweW-gNa4Dwc3-KMAAFgP1By4n3_kMC1oo',
@@ -71,8 +73,22 @@ const InputComponent = ({ accessToken }) => {
         }
       );
 
+      // AK列とAL列の値を取得する
+      const akAlRange = `${sheetName}!AK${lastFilledRowIndex}:AL${lastFilledRowIndex}`;
+      const akAlResponse = await axios.get(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(akAlRange)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      const akAlData = akAlResponse.data.values || [['', '']];
+      setAkValue(akAlData[0][0] || ''); // AK列の値を保存
+      setAlValue(akAlData[0][1] || ''); // AL列の値を保存
+
       alert('売上管理表のK列の末尾にデータが追加されました！');
-      setInputValue('');
       setShowAdditionalInputs(true);
       setInputRowIndex(lastFilledRowIndex); // 入力した行番号を保持
     } catch (error) {
@@ -118,6 +134,7 @@ const InputComponent = ({ accessToken }) => {
       }
 
       alert('売上管理表に追加のデータが反映されました！');
+      setInputValue(''); // 最終反映時に入力値をリセット
       setAdditionalInputs({
         D: '',
         S: '',
@@ -132,23 +149,12 @@ const InputComponent = ({ accessToken }) => {
       });
       setShowAdditionalInputs(false);
       setInputRowIndex(null); // 入力行番号をリセット
+      setAkValue(''); // AK列の値をリセット
+      setAlValue(''); // AL列の値をリセット
     } catch (error) {
       console.error('Error adding data:', error.response ? error.response.data : error.message);
       alert('追加データの反映に失敗しました。');
     }
-  };
-
-  const getLastFilledRowIndex = async () => {
-    const response = await axios.get(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetIds[selectedSheet]}/values/${encodeURIComponent('売上管理表!K:K')}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    const rows = response.data.values || [];
-    return rows.length;
   };
 
   return (
@@ -168,12 +174,16 @@ const InputComponent = ({ accessToken }) => {
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        placeholder="K列に追加するデータを入力"
+        placeholder="商品名"
       />
       <button onClick={handleInput}>入力</button>
 
       {showAdditionalInputs && (
         <div>
+          <h3>取得したデータ</h3>
+          <p>在庫数: {akValue}</p>
+          <p>ID: {alValue}</p>
+
           <h3>追加のデータを入力してください</h3>
           {Object.keys(additionalInputs).map((col) => (
             <div key={col}>
@@ -194,3 +204,4 @@ const InputComponent = ({ accessToken }) => {
 };
 
 export default InputComponent;
+

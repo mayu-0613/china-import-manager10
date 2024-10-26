@@ -64,6 +64,11 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center; /* テーブル全体を中央揃え */
 }
 
 thead {
@@ -72,13 +77,83 @@ thead {
 }
 
 th, td {
-  padding: 8px;
-  text-align: left;
+  padding: 4px 8px; /* パディングを調整して行の高さを小さく */
+  text-align: center; /* ヘッダーとデータを中央揃え */
+  background: #007BFF;
+  color: white;
+  font-weight: bold;
+  border: 1px solid #ddd;
+  white-space: nowrap; /* 折り返しを防止 */
+}
+
+td {
+  background: #fff;
+  color: #333;
+  white-space: nowrap; /* 折り返しを防止 */
   border: 1px solid #ddd;
 }
 
 tbody tr:nth-child(even) {
   background: #f2f2f2;
+}
+
+/* 列幅の調整 */
+th:nth-child(1), td:nth-child(1) {
+  width: 80px; /* 日付 */
+}
+
+th:nth-child(2), td:nth-child(2) {
+  width: 150px; /* 商品名 */
+}
+
+th:nth-child(3), td:nth-child(3) {
+  width: 100px; /* 価格 */
+}
+
+th:nth-child(4), td:nth-child(4) {
+  width: 150px; /* お届け先氏名 */
+}
+
+th:nth-child(5), td:nth-child(5) {
+  width: 120px; /* お届け先郵便番号 */
+}
+
+th:nth-child(6), td:nth-child(6),
+th:nth-child(7), td:nth-child(7) {
+  width: 100px; /* 都道府県名、市区町村名 */
+}
+
+th:nth-child(8), td:nth-child(8),
+th:nth-child(9), td:nth-child(9) {
+  width: 150px; /* 住所1、住所2 */
+}
+
+th:nth-child(10), td:nth-child(10) {
+  width: 80px; /* Shos */
+}
+
+th:nth-child(11), td:nth-child(11) {
+  width: 100px; /* 在庫数 */
+}
+
+th:nth-child(12), td:nth-child(12) {
+  width: 120px; /* 発送代行ID */
+}
+
+th:nth-child(13), td:nth-child(13) {
+  width: 100px; /* 発送日 */
+}
+
+th:nth-child(14), td:nth-child(14) {
+  width: 150px; /* 追跡番号 */
+}
+
+th:nth-child(15), td:nth-child(15) {
+  width: 120px; /* 配送会社 */
+}
+
+th:nth-child(16), td:nth-child(16) {
+  width: 120px; /* 担当者 */
 }
 
 /* 検索入力ボックスのスタイル */
@@ -113,3 +188,52 @@ select {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* 追加情報のスタイル */
+.info {
+  background: #e7f3ff;
+  border: 1px solid #b3daff;
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.info p {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+/* 追加のデータ入力ボックス */
+.additional-input {
+  margin-bottom: 10px;
+}
+
+.additional-input input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 600px) {
+  .tabs button {
+    font-size: 14px;
+  }
+
+  input[type="text"] {
+    width: calc(100% - 80px);
+  }
+
+  button {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .App {
+    padding: 10px;
+  }
+}
+

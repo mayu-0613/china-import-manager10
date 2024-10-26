@@ -8,14 +8,13 @@ const SearchComponent = () => {
 
   // スプレッドシートIDのマッピング
   const sheetIds = {
-    '130未来物販': '1p44UmyhbrEweW-gNa4Dwc3-KMAAFgP1By4n3_kMC1oo',
-    '20なちさん': '1MEnEv2Myp4wXyvFq_WK4dtVZcqmouxtswsKLnFhrmEg',
-    '76岩木さん': '1BF4530kjkPKGD-zYku0m1ouRc8mBLQd-rd6zCVU7vOk',
-    '190黒田さん': '1LawnuAky6z2WAoNTBYh_HSSfCFxTdzg65ajICrNvFCI',
+    '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130未来物販,
+    '20なちさん': process.env.REACT_APP_SPREADSHEET_ID_20なちさん,
+    '76岩木さん': process.env.REACT_APP_SPREADSHEET_ID_76岩木さん,
+    '190黒田さん': process.env.REACT_APP_SPREADSHEET_ID_190黒田さん,
   };
 
-  // ここにAPIキーを直接書きます
-  const apiKey = process.env.REACT_APP_API_KEY;
+  const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
 
   const handleSearch = async () => {
     const spreadsheetId = sheetIds[selectedSheet];
@@ -26,7 +25,6 @@ const SearchComponent = () => {
       const response = await axios.get(url);
       const rows = response.data.values;
 
-      // 検索条件に一致する行をフィルタリング
       const filteredRows = rows.filter(row => row.some(cell => cell.includes(searchTerm)));
       setResults(filteredRows);
     } catch (error) {
@@ -35,7 +33,8 @@ const SearchComponent = () => {
   };
 
   return (
-    <div>
+    <div className="container">
+      <h1>売上管理システム</h1>
       <select
         value={selectedSheet}
         onChange={(e) => setSelectedSheet(e.target.value)}
@@ -59,21 +58,22 @@ const SearchComponent = () => {
         <table>
           <thead>
             <tr>
-              <th>D列</th>
-              <th>K列</th>
-              <th>N列</th>
-              <th>S列</th>
-              <th>Y列</th>
-              <th>X列</th>
-              <th>W列</th>
-              <th>T列</th>
-              <th>U列</th>
-              <th>AA列</th>
-              <th>AK列</th>
-              <th>AM列</th>
-              <th>AN列</th>
-              <th>AO列</th>
-              <th>AP列</th>
+              <th>日付</th>
+              <th>商品名</th>
+              <th>価格</th>
+              <th>お届け先氏名</th>
+              <th>お届け先郵便番号</th>
+              <th>お届け先都道府県名</th>
+              <th>お届け先市町村名</th>
+              <th>お届け先住所1</th>
+              <th>お届け先住所2</th>
+              <th>Shos</th>
+              <th>現在の在庫数</th>
+              <th>発送代行ID</th>
+              <th>発送日</th>
+              <th>追跡番号</th>
+              <th>配送会社</th>
+              <th>担当者</th>
             </tr>
           </thead>
           <tbody>
@@ -90,6 +90,7 @@ const SearchComponent = () => {
                 <td>{row[20]}</td>
                 <td>{row[26]}</td>
                 <td>{row[36]}</td>
+                <td>{row[37]}</td>
                 <td>{row[38]}</td>
                 <td>{row[39]}</td>
                 <td>{row[40]}</td>
