@@ -21,12 +21,14 @@ const InputComponent = ({ accessToken }) => {
   const [akValue, setAkValue] = useState(''); // AK列のデータを保存
   const [alValue, setAlValue] = useState(''); // AL列のデータを保存
 
+  // スプレッドシートIDのマッピング
   const sheetIds = {
-    '130未来物販': '1p44UmyhbrEweW-gNa4Dwc3-KMAAFgP1By4n3_kMC1oo',
-    '20なちさん': '1MEnEv2Myp4wXyvFq_WK4dtVZcqmouxtswsKLnFhrmEg',
-    '76岩木さん': '1BF4530kjkPKGD-zYku0m1ouRc8mBLQd-rd6zCVU7vOk',
-    '190黒田さん': '1LawnuAky6z2WAoNTBYh_HSSfCFxTdzg65ajICrNvFCI',
+    '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130未来物販,
+    '20なちさん': process.env.REACT_APP_SPREADSHEET_ID_20なちさん,
+    '76岩木さん': process.env.REACT_APP_SPREADSHEET_ID_76岩木さん,
+    '190黒田さん': process.env.REACT_APP_SPREADSHEET_ID_190黒田さん,
   };
+
 
   const placeholders = {
     D: '注文日を入力してください',
