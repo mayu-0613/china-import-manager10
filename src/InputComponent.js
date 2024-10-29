@@ -1,49 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import axios from 'axios';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format } from 'date-fns';
 
 const InputComponent = ({ accessToken }) => {
   const [selectedSheet, setSelectedSheet] = useState('130未来物販');
   const [inputValue, setInputValue] = useState('');
   const [additionalInputs, setAdditionalInputs] = useState({
     D: '',
-    S: '',
     N: '',
+    S: '',
     Y: '',
     X: '',
     W: '',
     T: '',
     U: '',
-    AA: '',
     AP: '',
+    AA: '',
   });
+  const [akValue, setAkValue] = useState('');
+  const [alValue, setAlValue] = useState('');
   const [showAdditionalInputs, setShowAdditionalInputs] = useState(false);
   const [inputRowIndex, setInputRowIndex] = useState(null);
-  const [akValue, setAkValue] = useState(''); // AK列のデータを保存
-  const [alValue, setAlValue] = useState(''); // AL列のデータを保存
+  const [recentEntries, setRecentEntries] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
 
-  // スプレッドシートIDのマッピング
   const sheetIds = {
-    '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130未来物販,
-    '20なちさん': process.env.REACT_APP_SPREADSHEET_ID_20なちさん,
-    '76岩木さん': process.env.REACT_APP_SPREADSHEET_ID_76岩木さん,
-    '190黒田さん': process.env.REACT_APP_SPREADSHEET_ID_190黒田さん,
+    '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130,
+    '20なちさん': process.env.REACT_APP_SPREADSHEET_ID_20,
+    '76岩木さん': process.env.REACT_APP_SPREADSHEET_ID_76,
+    '190黒田さん': process.env.REACT_APP_SPREADSHEET_ID_190,
   };
-
 
   const placeholders = {
     D: '注文日を入力してください',
-    S: 'お届け先氏名を入力してください',
     N: '価格を入力してください',
+    S: 'お届け先氏名を入力してください',
     Y: 'お届け先郵便番号を入力してください',
     X: 'お届け先都道府県を入力してください',
     W: 'お届け先市区町村を入力してください',
     T: 'お届け先住所1を入力してください',
     U: 'お届け先住所2を入力してください',
-    AA: '空白 or SHOSを入力してください',
-    AP: 'を入力してください',
+    AP: '担当者名を入力してください',
+    AA: '空白 or Shopsを選択してください',
   };
 
+const fetchRecentEntries = async () => {
+    setAlertMessage('読み込み中です...');
+    const spreadsheetId = sheetIds[selectedSheet];
+    const sheetName = '売上管理表';
+    const range = `${sheetName}!K:S`;
+
+    try {
+        // 1. KからS列を取得
+        const response = await axios.get(
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?key=${process.env.REACT_APP_GOOGLE_API_KEY}&majorDimension=ROWS`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
+
+        // 2. AL列のデータを別途取得
+        const alResponse = await axios.get(
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!AL:AL?key=${process.env.REACT_APP_GOOGLE_API_KEY}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
+
+        const rows = response.data.values || [];
+        const alRows = alResponse.data.values || [];
+
+        const recentRows = rows.slice(-5).reverse().map((row, index) => ({
+            index: rows.length - index,
+            kColumn: row[0] || '',
+            sColumn: row[8] || '',
+            alColumn: alRows[rows.length - index - 1] ? alRows[rows.length - index - 1][0] : '',
+        }));
+
+        setRecentEntries(recentRows);
+        setAlertMessage(null); // 読み込み完了後アラートを消す
+    } catch (error) {
+        console.error('Error fetching recent entries:', error);
+        setAlertMessage('データの読み込みに失敗しました。');
+    }
+};
+
+  useEffect(() => {
+    fetchRecentEntries();
+  }, [selectedSheet]);
+
   const handleInput = async () => {
+    setIsProcessing(true);
+    setAlertMessage('処理中です...');
     const spreadsheetId = sheetIds[selectedSheet];
     const sheetName = '売上管理表';
     const range = `${sheetName}!K:K`;
@@ -75,10 +130,13 @@ const InputComponent = ({ accessToken }) => {
         }
       );
 
-      // AK列とAL列の値を取得する
+      setAlertMessage('売上管理表のK列の末尾にデータが追加されました！');
+      setShowAdditionalInputs(true);
+      setInputRowIndex(lastFilledRowIndex);
+
       const akAlRange = `${sheetName}!AK${lastFilledRowIndex}:AL${lastFilledRowIndex}`;
       const akAlResponse = await axios.get(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(akAlRange)}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(akAlRange)}?key=${process.env.REACT_APP_GOOGLE_API_KEY}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -86,38 +144,67 @@ const InputComponent = ({ accessToken }) => {
         }
       );
 
-      const akAlData = akAlResponse.data.values || [['', '']];
-      setAkValue(akAlData[0][0] || ''); // AK列の値を保存
-      setAlValue(akAlData[0][1] || ''); // AL列の値を保存
+      const [akData = '', alData = ''] = akAlResponse.data.values ? akAlResponse.data.values[0] : ['', ''];
+      setAkValue(akData);
+      setAlValue(alData);
 
-      alert('売上管理表のK列の末尾にデータが追加されました！');
-      setShowAdditionalInputs(true);
-      setInputRowIndex(lastFilledRowIndex); // 入力した行番号を保持
+      fetchRecentEntries();
     } catch (error) {
       console.error('Error adding data:', error.response ? error.response.data : error.message);
-      alert('データの追加に失敗しました。');
+      setAlertMessage('データの追加に失敗しました。');
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setAlertMessage(null), 3000);
     }
   };
 
-  const handleAdditionalInputChange = (e) => {
-    const { name, value } = e.target;
-    setAdditionalInputs((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleDeleteRow = async (rowIndex) => {
+    setIsProcessing(true);
+    setAlertMessage('削除処理中です...');
+    const spreadsheetId = sheetIds[selectedSheet];
+    const sheetName = '売上管理表';
+    const columnsToDelete = ['D', 'K', 'S', 'N', 'Y', 'X', 'W', 'T', 'U', 'AP', 'AA'];
+
+    try {
+      for (const col of columnsToDelete) {
+        const targetRange = `${sheetName}!${col}${rowIndex}`;
+        await axios.put(
+          `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(targetRange)}?valueInputOption=USER_ENTERED`,
+          { values: [['']] },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+      setAlertMessage(`行 ${rowIndex} のデータが削除されました`);
+      fetchRecentEntries();
+    } catch (error) {
+      console.error('Error deleting row data:', error);
+      setAlertMessage('データの削除に失敗しました。');
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setAlertMessage(null), 3000);
+    }
   };
 
   const handleBatchSubmit = async () => {
+    setIsProcessing(true);
+    setAlertMessage('処理中です...');
     const spreadsheetId = sheetIds[selectedSheet];
     const sheetName = '売上管理表';
 
     if (!inputRowIndex) {
-      alert('入力行番号が取得できていません。最初にK列にデータを入力してください。');
+      setAlertMessage('入力行番号が取得できていません。最初にK列にデータを入力してください。');
+      setIsProcessing(false);
+      setTimeout(() => setAlertMessage(null), 3000);
       return;
     }
 
     try {
-      const columns = ['D', 'S', 'N', 'Y', 'X', 'W', 'T', 'U', 'AA', 'AP'];
+      const columns = ['D', 'S', 'N', 'Y', 'X', 'W', 'T', 'U', 'AP', 'AA'];
 
       for (const col of columns) {
         const targetRange = `${sheetName}!${col}${inputRowIndex}`;
@@ -135,8 +222,7 @@ const InputComponent = ({ accessToken }) => {
         );
       }
 
-      alert('売上管理表に追加のデータが反映されました！');
-      setInputValue(''); // 最終反映時に入力値をリセット
+      setAlertMessage('売上管理表に追加のデータが反映されました！');
       setAdditionalInputs({
         D: '',
         S: '',
@@ -146,25 +232,77 @@ const InputComponent = ({ accessToken }) => {
         W: '',
         T: '',
         U: '',
-        AA: '',
         AP: '',
+        AA: '',
       });
       setShowAdditionalInputs(false);
-      setInputRowIndex(null); // 入力行番号をリセット
-      setAkValue(''); // AK列の値をリセット
-      setAlValue(''); // AL列の値をリセット
+      setInputRowIndex(null);
+      fetchRecentEntries();
     } catch (error) {
       console.error('Error adding data:', error.response ? error.response.data : error.message);
-      alert('追加データの反映に失敗しました。');
+      setAlertMessage('追加データの反映に失敗しました。');
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setAlertMessage(null), 3000);
     }
   };
 
+const handlePostalCodeInputChange = (e) => {
+    const postalCode = e.target.value.replace(/-/g, ''); // ハイフンを削除
+    handlePostalCodeChange(postalCode); // 郵便番号変更の関数を呼び出し
+    setAdditionalInputs((prev) => ({
+        ...prev,
+        Y: postalCode,
+    }));
+};
+
+  const handlePostalCodeChange = async (postalCode) => {
+    setAdditionalInputs({ ...additionalInputs, Y: postalCode });
+
+    if (postalCode.length === 7) {
+      try {
+        const response = await axios.get(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${postalCode}`);
+        const address = response.data.results[0];
+        setAdditionalInputs((prev) => ({
+          ...prev,
+          X: address.address1 || '',
+          W: address.address2 || '',
+          T: address.address3 || '',
+        }));
+      } catch (error) {
+        console.error('Error fetching address from postal code:', error);
+      }
+    }
+  };
+
+  const handlePriceChange = (e) => {
+    const value = e.target.value.replace(/,/g, ''); // カンマを削除
+    setAdditionalInputs((prev) => ({
+      ...prev,
+      N: value,
+    }));
+  };
+
+
   return (
     <div>
-      <select
-        value={selectedSheet}
-        onChange={(e) => setSelectedSheet(e.target.value)}
-      >
+      {alertMessage && (
+        <div
+          style={{
+            padding: '10px',
+            backgroundColor: isProcessing ? 'orange' : 'lightgreen',
+            color: 'black',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            borderRadius: '5px',
+            marginBottom: '15px',
+          }}
+        >
+          {alertMessage}
+        </div>
+      )}
+
+      <select value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)}>
         {Object.keys(sheetIds).map((sheetName) => (
           <option key={sheetName} value={sheetName}>
             {sheetName}
@@ -172,35 +310,98 @@ const InputComponent = ({ accessToken }) => {
         ))}
       </select>
 
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        placeholder="商品名"
-      />
-      <button onClick={handleInput}>入力</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', whiteSpace: 'nowrap' }}>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="出品名"
+        />
+        <button onClick={handleInput} disabled={isProcessing}>入力</button>
+      </div>
+
+      {showAdditionalInputs && (
+        <div style={{ marginBottom: '10px' }}>
+          <p><strong>在庫数:</strong> {akValue}</p>
+          <p><strong>発送代行ID:</strong> {alValue}</p>
+        </div>
+      )}
 
       {showAdditionalInputs && (
         <div>
-          <h3>取得したデータ</h3>
-          <p>在庫数: {akValue}</p>
-          <p>ID: {alValue}</p>
-
           <h3>追加のデータを入力してください</h3>
           {Object.keys(additionalInputs).map((col) => (
-            <div key={col}>
-              <input
-                type="text"
-                name={col}
-                value={additionalInputs[col]}
-                onChange={handleAdditionalInputChange}
-                placeholder={placeholders[col] || `${col}列のデータを入力`}
-              />
+            <div key={col} className="additional-input">
+              {col === 'D' ? (
+                <DatePicker
+                  selected={additionalInputs.D ? new Date(additionalInputs.D) : null}
+                  onChange={(date) => setAdditionalInputs({ ...additionalInputs, D: format(date, 'yyyy/MM/dd') })}
+                  dateFormat="yyyy/MM/dd"
+                  placeholderText="注文日を選択してください"
+                />
+              ) : col === 'Y' ? (
+                <input
+                  type="text"
+                  name={col}
+                  value={additionalInputs[col]}
+                  onChange={handlePostalCodeInputChange} // ハイフン削除を実行
+                  placeholder={placeholders[col]}
+                />
+              ) : col === 'N' ? (
+                <input
+                  type="text"
+                  name={col}
+                  value={additionalInputs[col]}
+                  onChange={handlePriceChange}
+                  placeholder={placeholders[col]}
+                />
+              ) : col === 'AA' ? (
+                <select
+                  name={col}
+                  value={additionalInputs[col]}
+                  onChange={(e) => setAdditionalInputs({ ...additionalInputs, [col]: e.target.value })}
+                >
+                  <option value=""></option>
+                  <option value="Shops">Shops</option>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  name={col}
+                  value={additionalInputs[col]}
+                  onChange={(e) => setAdditionalInputs({ ...additionalInputs, [col]: e.target.value })}
+                  placeholder={placeholders[col]}
+                />
+              )}
             </div>
           ))}
-          <button onClick={handleBatchSubmit}>一括反映</button>
+          <button onClick={handleBatchSubmit} disabled={isProcessing}>一括反映</button>
         </div>
       )}
+
+      <h3>直近の入力データ（5件）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>削除</th>
+            <th>出品名</th>
+            <th>発送代行ID</th>
+            <th>お届け先氏名</th>
+          </tr>
+        </thead>
+        <tbody>
+          {recentEntries.map((entry, index) => (
+            <tr key={index}>
+              <td>
+                <button onClick={() => handleDeleteRow(entry.index)} disabled={isProcessing}>削除</button>
+              </td>
+              <td>{entry.kColumn}</td>
+              <td>{entry.alColumn}</td>
+              <td>{entry.sColumn}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
