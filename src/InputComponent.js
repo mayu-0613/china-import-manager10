@@ -37,7 +37,7 @@ const InputComponent = ({ accessToken }) => {
   const placeholders = {
     D: '注文日を入力してください',
     N: '価格を入力してください',
-    S: 'お届け先氏名を入力してください',
+    S: 'お届け先氏名を入力してください(メルカリ便希望の場合はこちらへ内容を入力してください。)',
     Y: 'お届け先郵便番号を入力してください',
     X: 'お届け先都道府県を入力してください',
     W: 'お届け先市区町村を入力してください',
@@ -248,13 +248,17 @@ const fetchRecentEntries = async () => {
   };
 
 const handlePostalCodeInputChange = (e) => {
-    const postalCode = e.target.value.replace(/-/g, ''); // ハイフンを削除
-    handlePostalCodeChange(postalCode); // 郵便番号変更の関数を呼び出し
+    let postalCode = e.target.value.replace(/-/g, ''); // ハイフンを削除
+    if (postalCode.length > 3) {
+        postalCode = postalCode.slice(0, 3) + '-' + postalCode.slice(3); // 前3桁の後にハイフンを追加
+    }
+    handlePostalCodeChange(postalCode.replace(/-/g, '')); // 郵便番号変更の関数を呼び出し、ハイフンを削除した値を渡す
     setAdditionalInputs((prev) => ({
         ...prev,
         Y: postalCode,
     }));
 };
+
 
   const handlePostalCodeChange = async (postalCode) => {
     setAdditionalInputs({ ...additionalInputs, Y: postalCode });
@@ -363,6 +367,22 @@ const handlePostalCodeInputChange = (e) => {
                 >
                   <option value=""></option>
                   <option value="Shops">Shops</option>
+                </select>
+              ) : col === 'AP' ? (
+                <select
+                  name={col}
+                  value={additionalInputs[col]}
+                  onChange={(e) => setAdditionalInputs({ ...additionalInputs, [col]: e.target.value })}
+                >
+                  <option value="">担当者名を選択</option>
+                  <option value="矢崎">矢崎</option>
+                  <option value="奥村">奥村</option>
+                  <option value="森栄">森栄</option>
+                  <option value="新野">新野</option>
+                  <option value="冨永">冨永</option>
+                  <option value="千田">千田</option>
+                  <option value="阿部">阿部</option>
+                  <option value="石橋">石橋</option>
                 </select>
               ) : (
                 <input
