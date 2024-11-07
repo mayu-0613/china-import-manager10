@@ -94,7 +94,7 @@ const fetchRecentEntries = async () => {
 
   useEffect(() => {
     fetchRecentEntries();
-  }, [selectedSheet, fetchRecentEntries]);
+  }, [selectedSheet]);
 
   const handleInput = async () => {
     setIsProcessing(true);
