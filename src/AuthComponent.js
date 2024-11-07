@@ -9,13 +9,6 @@ const AuthComponent = ({ onSignInSuccess }) => {
   const scope = 'https://www.googleapis.com/auth/spreadsheets';
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?scope=${encodeURIComponent(scope)}&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}`;
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    if (code) {
-      exchangeCodeForToken(code);
-    }
-  }, []);
 
   const exchangeCodeForToken = async (code) => {
     try {
@@ -38,6 +31,15 @@ const AuthComponent = ({ onSignInSuccess }) => {
       console.error('アクセストークンの取得に失敗しました:', error);
     }
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code) {
+      exchangeCodeForToken(code);
+    }
+  }, [exchangeCodeForToken]);
+
 
   return (
     <div>
