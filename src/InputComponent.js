@@ -503,5 +503,3 @@ const handleSaveEdit = async () => {
 };
 
 export default InputComponent;
-
-
