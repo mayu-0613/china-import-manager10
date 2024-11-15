@@ -1,16 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import axios from 'axios';
-
 
 const AuthComponent = ({ onSignInSuccess }) => {
   const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID; // Google Cloud Platformで取得したクライアントID
-  const clientSecret = process.env.REACT_APP_GOOGLE_CLIENT_SECRET;// Google Cloud Platformで取得したクライアントシークレット
+  const clientSecret = process.env.REACT_APP_GOOGLE_CLIENT_SECRET; // Google Cloud Platformで取得したクライアントシークレット
   const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI; // GCPで設定したリダイレクトURI
   const scope = 'https://www.googleapis.com/auth/spreadsheets';
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?scope=${encodeURIComponent(scope)}&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}`;
 
-
-  const exchangeCodeForToken = async (code) => {
+  // トークン交換関数をuseCallbackでラップ
+  const exchangeCodeForToken = useCallback(async (code) => {
     try {
       const response = await axios.post('https://oauth2.googleapis.com/token', {
         code: code,
@@ -30,7 +29,7 @@ const AuthComponent = ({ onSignInSuccess }) => {
     } catch (error) {
       console.error('アクセストークンの取得に失敗しました:', error);
     }
-  };
+  }, [clientId, clientSecret, redirectUri, onSignInSuccess]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -39,7 +38,6 @@ const AuthComponent = ({ onSignInSuccess }) => {
       exchangeCodeForToken(code);
     }
   }, [exchangeCodeForToken]);
-
 
   return (
     <div>
