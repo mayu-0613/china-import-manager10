@@ -4,7 +4,7 @@ const InputField = ({ inputValue, setInputValue, handleInput, isProcessing }) =>
       type="text"
       value={inputValue}
       onChange={(e) => setInputValue(e.target.value)}
-      placeholder="出品名"
+      placeholder="出品名を入力"
     />
     <button onClick={handleInput} disabled={isProcessing}>
       入力
