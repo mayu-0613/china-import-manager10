@@ -140,55 +140,61 @@ const handleSaveEdit = async () => {
 };
 
 
-  const handleDeleteRow = async (rowIndex) => {
-    setIsProcessing(true);
-    setAlertMessage('削除処理中です...');
+const handleDeleteRow = async (rowIndex) => {
+  setIsProcessing(true);
+  setAlertMessage('削除処理中です...');
 
-    const spreadsheetId = getSheetIds()[selectedSheet];
-    const sheetName = '売上管理表';
+  const spreadsheetId = getSheetIds()[selectedSheet];
+  const sheetName = '売上管理表';
 
-    try {
-      const sheetResponse = await axios.get(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+  try {
+    // 削除対象の商品の名前を recentEntries から取得
+    const targetEntry = recentEntries.find((entry) => entry.index === rowIndex);
+    const productName = targetEntry ? targetEntry.kColumn : '不明な商品';
 
-      const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
-      if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
+    const sheetResponse = await axios.get(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
-      const request = {
-        requests: [
-          {
-            deleteDimension: {
-              range: {
-                sheetId: sheet.properties.sheetId,
-                dimension: 'ROWS',
-                startIndex: rowIndex - 1,
-                endIndex: rowIndex,
-              },
+    const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
+    if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
+
+    const request = {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: sheet.properties.sheetId,
+              dimension: 'ROWS',
+              startIndex: rowIndex - 1,
+              endIndex: rowIndex,
             },
           },
-        ],
-      };
+        },
+      ],
+    };
 
-      await axios.post(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
-        request,
-        {
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        }
-      );
+    await axios.post(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      }
+    );
 
-      setAlertMessage(`行 ${rowIndex} が削除されました`);
-      fetchRecentEntries();
-    } catch (error) {
-      setAlertMessage('行の削除に失敗しました。');
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
-      setTimeout(() => setAlertMessage(null), 3000);
-    }
-  };
+    // 成功メッセージに商品名を含める
+    setSuccessMessage(`商品「${productName}」の削除が完了しました！`);
+    setTimeout(() => setSuccessMessage(null), 3000);
+    fetchRecentEntries(); // 最新データを再取得
+  } catch (error) {
+    setAlertMessage('行の削除に失敗しました。');
+    console.error(error);
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   return (
     <div>
