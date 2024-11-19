@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios'; // axios をインポート
+import axios from 'axios';
 import AlertMessage from './AlertMessage';
 import SheetSelector from './SheetSelector';
 import InputField from './InputField';
@@ -11,7 +11,6 @@ import {
   getSheetIds,
   getPlaceholders,
   fetchSheetData,
-  processRecentEntries,
   appendSheetData,
   fetchRowData,
   updateBatchData,
@@ -30,50 +29,44 @@ const InputComponent = ({ accessToken }) => {
   const [alertMessage, setAlertMessage] = useState(null);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [editingData, setEditingData] = useState({});
-  const [searchTerm, setSearchTerm] = useState(''); // 検索キーワード
-  const [searchResults, setSearchResults] = useState([]); // 検索結果
-
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const placeholders = getPlaceholders();
 
-const fetchRecentEntries = useCallback(async () => {
-  try {
-    setAlertMessage('読み込み中です...');
+  // 最近のエントリを取得
+  const fetchRecentEntries = useCallback(async () => {
+    try {
+      setAlertMessage('読み込み中です...');
 
-    // メインデータ (K:S列)
-    const rows = await fetchSheetData(selectedSheet, '売上管理表', 'K:S');
+      const rows = await fetchSheetData(selectedSheet, '売上管理表', 'K:S');
+      const alData = await fetchSheetData(selectedSheet, '売上管理表', 'AL:AL');
+      const akData = await fetchSheetData(selectedSheet, '売上管理表', 'AK:AK');
+      const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D:AP');
 
-    // 補足データ (AL列, AK列)
-    const alData = await fetchSheetData(selectedSheet, '売上管理表', 'AL:AL');
-    const akData = await fetchSheetData(selectedSheet, '売上管理表', 'AK:AK');
-    const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D:AP');
+      const processedEntries = rows.slice(-5).reverse().map((row, index) => ({
+        index: rows.length - index,
+        kColumn: row[0] || '',
+        sColumn: row[8] || '',
+        alColumn: alData[rows.length - index - 1]?.[0] || '',
+        akColumn: akData[rows.length - index - 1]?.[0] || '',
+        dColumn: dapData[rows.length - index - 1]?.[0] || '',
+        nColumn: dapData[rows.length - index - 1]?.[10] || '',
+        yColumn: dapData[rows.length - index - 1]?.[21] || '',
+        xColumn: dapData[rows.length - index - 1]?.[20] || '',
+        wColumn: dapData[rows.length - index - 1]?.[19] || '',
+        tColumn: dapData[rows.length - index - 1]?.[16] || '',
+        uColumn: dapData[rows.length - index - 1]?.[17] || '',
+        apColumn: dapData[rows.length - index - 1]?.[38] || '',
+        aaColumn: dapData[rows.length - index - 1]?.[23] || '',
+      }));
 
-    // 直近5件のデータを加工
-    const processedEntries = rows.slice(-5).reverse().map((row, index) => ({
-      index: rows.length - index, // 1-based index
-      kColumn: row[0] || '',     // 出品名
-      sColumn: row[8] || '',     // お届け先氏名
-      alColumn: alData[rows.length - index - 1]?.[0] || '', // 発送代行ID
-      akColumn: akData[rows.length - index - 1]?.[0] || '', // 在庫数
-      dColumn: dapData[rows.length - index - 1]?.[0] || '', // 日付
-      nColumn: dapData[rows.length - index - 1]?.[10] || '',     // 価格
-      yColumn: dapData[rows.length - index - 1]?.[21] || '',     // 郵便番号
-      xColumn: dapData[rows.length - index - 1]?.[20] || '',     // 都道府県
-      wColumn: dapData[rows.length - index - 1]?.[19] || '',     // 市区町村
-      tColumn: dapData[rows.length - index - 1]?.[16] || '',     // 住所1
-      uColumn: dapData[rows.length - index - 1]?.[17] || '',     // 住所2
-      apColumn: dapData[rows.length - index - 1]?.[38] || '',    // 担当者名
-      aaColumn: dapData[rows.length - index - 1]?.[23] || '',    // Shops
-    }));
-
-    setRecentEntries(processedEntries);
-    setAlertMessage(null);
-  } catch (error) {
-    setAlertMessage('データの読み込みに失敗しました。');
-    console.error(error);
-  }
-}, [selectedSheet]);
-
+      setRecentEntries(processedEntries);
+      setAlertMessage(null);
+    } catch (error) {
+      setAlertMessage('データの読み込みに失敗しました。');
+      console.error(error);
+    }
+  }, [selectedSheet]);
 
   useEffect(() => {
     fetchRecentEntries();
@@ -105,6 +98,8 @@ const fetchRecentEntries = useCallback(async () => {
       setAdditionalInputs(initializeInputs());
       setShowAdditionalInputs(false);
       fetchRecentEntries();
+      setSuccessMessage('反映が完了しました！');
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch {
       setAlertMessage('追加データの反映に失敗しました。');
     } finally {
@@ -113,7 +108,6 @@ const fetchRecentEntries = useCallback(async () => {
   };
 
   const handleEdit = (entry) => {
-　  console.log('編集対象データ:', entry); // デバッグ用
     setEditingRowIndex(entry.index);
     setEditingData({
       D: entry.dColumn || '',
@@ -129,82 +123,95 @@ const fetchRecentEntries = useCallback(async () => {
     });
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      setIsProcessing(true);
-      setAlertMessage('処理中です...');
-      await updateBatchData(selectedSheet, '売上管理表', editingRowIndex, editingData, accessToken);
-      setEditingRowIndex(null);
-      fetchRecentEntries();
-    } catch {
-      setAlertMessage('データの更新に失敗しました。');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-const handleDeleteRow = async (rowIndex) => {
-  console.log(`Deleting row: ${rowIndex}`); // デバッグ用
-  setIsProcessing(true);
-  setAlertMessage('削除処理中です...');
-
-  const spreadsheetId = getSheetIds()[selectedSheet];
-  const sheetName = '売上管理表';
-
+const handleSaveEdit = async () => {
   try {
-    // スプレッドシートのメタデータからシートIDを取得
-    const sheetResponse = await axios.get(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    );
-
-    const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
-    if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
-    const sheetId = sheet.properties.sheetId;
-
-    // 行削除のリクエストを送信
-    const request = {
-      requests: [
-        {
-          deleteDimension: {
-            range: {
-              sheetId: sheetId,
-              dimension: 'ROWS',
-              startIndex: rowIndex - 1, // 0ベースなので -1
-              endIndex: rowIndex, // 削除する行
-            },
-          },
-        },
-      ],
-    };
-
-    await axios.post(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
-      request,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    setAlertMessage(`行 ${rowIndex} が削除されました`);
-    fetchRecentEntries(); // 削除後に最新データを取得
-  } catch (error) {
-    console.error('行削除エラー:', error);
-    setAlertMessage('行の削除に失敗しました。');
+    setIsProcessing(true);
+    setAlertMessage('処理中です...');
+    await updateBatchData(selectedSheet, '売上管理表', editingRowIndex, editingData, accessToken);
+    setEditingRowIndex(null);
+    fetchRecentEntries();
+    setSuccessMessage('編集内容が保存されました！'); // 成功メッセージをセット
+    setTimeout(() => setSuccessMessage(null), 3000); // 3秒後に非表示
+  } catch {
+    setAlertMessage('データの更新に失敗しました。');
   } finally {
     setIsProcessing(false);
-    setTimeout(() => setAlertMessage(null), 3000);
   }
 };
 
 
+  const handleDeleteRow = async (rowIndex) => {
+    setIsProcessing(true);
+    setAlertMessage('削除処理中です...');
+
+    const spreadsheetId = getSheetIds()[selectedSheet];
+    const sheetName = '売上管理表';
+
+    try {
+      const sheetResponse = await axios.get(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
+      if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
+
+      const request = {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: sheet.properties.sheetId,
+                dimension: 'ROWS',
+                startIndex: rowIndex - 1,
+                endIndex: rowIndex,
+              },
+            },
+          },
+        ],
+      };
+
+      await axios.post(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+        request,
+        {
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        }
+      );
+
+      setAlertMessage(`行 ${rowIndex} が削除されました`);
+      fetchRecentEntries();
+    } catch (error) {
+      setAlertMessage('行の削除に失敗しました。');
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setAlertMessage(null), 3000);
+    }
+  };
+
   return (
     <div>
+      {successMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            fontSize: '24px',
+            zIndex: 1000,
+          }}
+        >
+          {successMessage}
+        </div>
+      )}
       <AlertMessage message={alertMessage} isProcessing={isProcessing} />
       <SheetSelector sheetIds={getSheetIds()} selectedSheet={selectedSheet} setSelectedSheet={setSelectedSheet} />
       <InputField inputValue={inputValue} setInputValue={setInputValue} handleInput={handleInput} isProcessing={isProcessing} />
@@ -222,7 +229,7 @@ const handleDeleteRow = async (rowIndex) => {
       <RecentEntriesTable
         recentEntries={recentEntries}
         handleEdit={handleEdit}
-  　　　handleDeleteRow={handleDeleteRow} 
+        handleDeleteRow={handleDeleteRow}
         isProcessing={isProcessing}
       />
       {editingRowIndex !== null && (
@@ -237,8 +244,6 @@ const handleDeleteRow = async (rowIndex) => {
     </div>
   );
 };
-
-
 
 export default InputComponent;
 
