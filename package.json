@@ -26,7 +26,6 @@
     "eject": "react-scripts eject",
     "lint": "eslint . --ext .js,.jsx"
   },
-
   "eslintConfig": {
     "extends": [
       "react-app",
