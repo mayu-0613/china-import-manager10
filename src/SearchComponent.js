@@ -104,6 +104,10 @@ const SearchComponent = ({ accessToken }) => {
         <table>
           <thead>
             <tr>
+              <th>メルカリ確認</th>
+              <th>発送日</th>
+              <th>追跡番号</th>
+              <th>配送会社</th>
               <th>日付</th>
               <th>商品名</th>
               <th>価格</th>
@@ -116,16 +120,17 @@ const SearchComponent = ({ accessToken }) => {
               <th>Shos</th>
               <th>現在の在庫数</th>
               <th>発送代行ID</th>
-              <th>発送日</th>
-              <th>追跡番号</th>
-              <th>配送会社</th>
               <th>担当者</th>
-              <th>メルカリ確認</th>
+
             </tr>
           </thead>
           <tbody>
             {results.map((row, index) => (
               <tr key={index}>
+                <td>{row[42]}</td>
+                <td>{row[38]}</td>
+                <td>{row[39]}</td>
+                <td>{row[40]}</td>
                 <td>{row[3]}</td>
                 <td>{row[10]}</td>
                 <td>{row[13]}</td>
@@ -138,11 +143,8 @@ const SearchComponent = ({ accessToken }) => {
                 <td>{row[26]}</td>
                 <td>{row[36]}</td>
                 <td>{row[37]}</td>
-                <td>{row[38]}</td>
-                <td>{row[39]}</td>
-                <td>{row[40]}</td>
                 <td>{row[41]}</td>
-                <td>{row[42]}</td>
+
               </tr>
             ))}
           </tbody>
