@@ -17,7 +17,7 @@ import {
 } from './utils';
 
 const InputComponent = ({ accessToken }) => {
-  const [selectedSheet, setSelectedSheet] = useState('130未来物販');
+  const [selectedSheet, setSelectedSheet] = useState(null); 
   const [inputValue, setInputValue] = useState('');
   const [additionalInputs, setAdditionalInputs] = useState(initializeInputs());
   const [akValue, setAkValue] = useState('');
@@ -36,6 +36,12 @@ const InputComponent = ({ accessToken }) => {
   const [deleteTargetRowIndex, setDeleteTargetRowIndex] = useState(null);
 
   const placeholders = getPlaceholders();
+
+
+
+
+
+
 
   // 最近のエントリを取得
   const fetchRecentEntries = useCallback(async () => {
@@ -249,7 +255,14 @@ const InputComponent = ({ accessToken }) => {
       )}
       <AlertMessage message={alertMessage} isProcessing={isProcessing} />
       <SheetSelector sheetIds={getSheetIds()} selectedSheet={selectedSheet} setSelectedSheet={setSelectedSheet} />
-      <InputField inputValue={inputValue} setInputValue={setInputValue} handleInput={handleInput} isProcessing={isProcessing} />
+      {selectedSheet && (
+        <InputField
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          handleInput={handleInput}
+          isProcessing={isProcessing}
+        />
+      )}
       {showAdditionalInputs && (
         <AdditionalInputs
           additionalInputs={additionalInputs}
