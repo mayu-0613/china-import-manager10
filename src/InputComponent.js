@@ -31,6 +31,10 @@ const InputComponent = ({ accessToken }) => {
   const [editingData, setEditingData] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
 
+  // 追加: 削除確認モーダル用の状態
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteTargetRowIndex, setDeleteTargetRowIndex] = useState(null);
+
   const placeholders = getPlaceholders();
 
   // 最近のエントリを取得
@@ -123,81 +127,104 @@ const InputComponent = ({ accessToken }) => {
     });
   };
 
-const handleSaveEdit = async () => {
-  try {
-    setIsProcessing(true);
-    setAlertMessage('処理中です...');
-    await updateBatchData(selectedSheet, '売上管理表', editingRowIndex, editingData, accessToken);
-    setEditingRowIndex(null);
-    fetchRecentEntries();
-    setSuccessMessage('編集内容が保存されました！'); // 成功メッセージをセット
-    setTimeout(() => setSuccessMessage(null), 3000); // 3秒後に非表示
-  } catch {
-    setAlertMessage('データの更新に失敗しました。');
-  } finally {
-    setIsProcessing(false);
-  }
-};
+  const handleSaveEdit = async () => {
+    try {
+      setIsProcessing(true);
+      setAlertMessage('処理中です...');
+      await updateBatchData(selectedSheet, '売上管理表', editingRowIndex, editingData, accessToken);
+      setEditingRowIndex(null);
+      fetchRecentEntries();
+      setSuccessMessage('編集内容が保存されました！');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch {
+      setAlertMessage('データの更新に失敗しました。');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
+  // 削除モーダルの表示
+  const handleShowDeleteModal = (rowIndex) => {
+    setDeleteTargetRowIndex(rowIndex);
+    setDeleteModalVisible(true);
+  };
 
-const handleDeleteRow = async (rowIndex) => {
-  setIsProcessing(true);
-  setAlertMessage('削除処理中です...');
+  // 削除モーダルで「はい」を選択
+  const handleConfirmDelete = async () => {
+    try {
+      setIsProcessing(true);
+      setAlertMessage('削除処理中です...');
+      const spreadsheetId = getSheetIds()[selectedSheet];
+      const sheetName = '売上管理表';
 
-  const spreadsheetId = getSheetIds()[selectedSheet];
-  const sheetName = '売上管理表';
+      const sheetResponse = await axios.get(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
 
-  try {
-    // 削除対象の商品の名前を recentEntries から取得
-    const targetEntry = recentEntries.find((entry) => entry.index === rowIndex);
-    const productName = targetEntry ? targetEntry.kColumn : '不明な商品';
+      const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
+      if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
 
-    const sheetResponse = await axios.get(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-
-    const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
-    if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
-
-    const request = {
-      requests: [
-        {
-          deleteDimension: {
-            range: {
-              sheetId: sheet.properties.sheetId,
-              dimension: 'ROWS',
-              startIndex: rowIndex - 1,
-              endIndex: rowIndex,
+      const request = {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: sheet.properties.sheetId,
+                dimension: 'ROWS',
+                startIndex: deleteTargetRowIndex - 1,
+                endIndex: deleteTargetRowIndex,
+              },
             },
           },
-        },
-      ],
-    };
+        ],
+      };
 
-    await axios.post(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
-      request,
-      {
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      }
-    );
+      await axios.post(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+        request,
+        {
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        }
+      );
 
-    // 成功メッセージに商品名を含める
-    setSuccessMessage(`商品「${productName}」の削除が完了しました！`);
-    setTimeout(() => setSuccessMessage(null), 3000);
-    fetchRecentEntries(); // 最新データを再取得
-  } catch (error) {
-    setAlertMessage('行の削除に失敗しました。');
-    console.error(error);
-  } finally {
-    setIsProcessing(false);
-  }
-};
+      setSuccessMessage('行の削除が完了しました！');
+      fetchRecentEntries();
+    } catch (error) {
+      setAlertMessage('行の削除に失敗しました。');
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+      setDeleteModalVisible(false);
+    }
+  };
 
+  // 削除モーダルで「いいえ」を選択
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+    setDeleteTargetRowIndex(null);
+  };
 
   return (
     <div>
+      {isDeleteModalVisible && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'white',
+            padding: '20px',
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+            zIndex: 1000,
+          }}
+        >
+          <p>本当に削除しますか？</p>
+          <button onClick={handleConfirmDelete}>はい</button>
+          <button onClick={handleCancelDelete}>いいえ</button>
+        </div>
+      )}
       {successMessage && (
         <div
           style={{
@@ -235,7 +262,7 @@ const handleDeleteRow = async (rowIndex) => {
       <RecentEntriesTable
         recentEntries={recentEntries}
         handleEdit={handleEdit}
-        handleDeleteRow={handleDeleteRow}
+        handleDeleteRow={handleShowDeleteModal}
         isProcessing={isProcessing}
       />
       {editingRowIndex !== null && (

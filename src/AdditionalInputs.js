@@ -54,14 +54,17 @@ const AdditionalInputs = ({
       {Object.keys(additionalInputs).map((col) => (
         <div key={col} className="additional-input">
           {col === 'D' ? (
-            <DatePicker
-              selected={additionalInputs.D ? new Date(additionalInputs.D) : null}
-              onChange={(date) =>
-                setAdditionalInputs({ ...additionalInputs, D: date.toISOString().split('T')[0] })
-              }
-              dateFormat="yyyy/MM/dd"
-              placeholderText={placeholders[col]}
-            />
+<DatePicker
+  selected={additionalInputs.D ? new Date(additionalInputs.D) : null}
+  onChange={(date) => {
+    const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+    setAdditionalInputs({ ...additionalInputs, D: formattedDate });
+  }}
+  dateFormat="yyyy/MM/dd"
+  placeholderText={placeholders[col]}
+/>
+
+
           ) : col === 'AP' ? (
             <select
               name="AP"
