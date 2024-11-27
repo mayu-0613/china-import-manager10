@@ -189,9 +189,11 @@ const InputComponent = ({ accessToken }) => {
       );
 
       setSuccessMessage('行の削除が完了しました！');
+      setTimeout(() => setSuccessMessage(null), 3000);
       fetchRecentEntries();
     } catch (error) {
       setAlertMessage('行の削除に失敗しました。');
+      setTimeout(() => setSuccessMessage(null), 3000);
       console.error(error);
     } finally {
       setIsProcessing(false);
