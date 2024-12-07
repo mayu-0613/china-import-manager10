@@ -73,7 +73,7 @@ const InputComponent = ({ accessToken }) => {
       setRecentEntries(processedEntries);
       setAlertMessage(null);
     } catch (error) {
-      setAlertMessage('データの読み込みに失敗しました。');
+      setAlertMessage('スプレッドシートを選択してください');
       console.error(error);
     }
   }, [selectedSheet]);
@@ -82,25 +82,49 @@ const InputComponent = ({ accessToken }) => {
     fetchRecentEntries();
   }, [fetchRecentEntries]);
 
-  const handleInput = async () => {
-    try {
-      setIsProcessing(true);
-      setAlertMessage('処理中です...');
-      const lastFilledRowIndex = await appendSheetData(selectedSheet, '売上管理表', 'K', inputValue, accessToken);
-      setShowAdditionalInputs(true);
-      setInputRowIndex(lastFilledRowIndex);
-      const [ak, al] = await fetchRowData(selectedSheet, '売上管理表', lastFilledRowIndex, 'AK:AL');
-      setAkValue(ak);
-      setAlValue(al);
-      fetchRecentEntries();
-    } catch {
-      setAlertMessage('データの追加に失敗しました。');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+const validateInputs = () => {
+  // 必須項目のバリデーション
+  const { D, N, S, T, W, X, AP } = additionalInputs;
+
+  // 追加入力項目が全て入力されているかを確認
+  if (!D || !N || !S || !T || !W || !X || !AP) {
+    setAlertMessage('必須項目が入力されていません。');
+    return false;
+  }
+
+  // K列の入力は必須ではないため、エラーメッセージを表示しない
+  return true;
+};
+
+
+
+const handleInput = async () => {
+
+  try {
+    setIsProcessing(true);
+    setAlertMessage('処理中です...');
+    const lastFilledRowIndex = await appendSheetData(selectedSheet, '売上管理表', 'K', inputValue, accessToken);
+    setShowAdditionalInputs(true);
+    setInputRowIndex(lastFilledRowIndex);
+    const [ak, al] = await fetchRowData(selectedSheet, '売上管理表', lastFilledRowIndex, 'AK:AL');
+    setAkValue(ak);
+    setAlValue(al);
+    fetchRecentEntries();
+  } catch {
+    setAlertMessage('データの追加に失敗しました。');
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   const handleBatchSubmit = async () => {
+
+  // 入力検証
+  if (!validateInputs()) {
+    return;  // バリデーションエラーがあれば処理を中断
+  }
+
     try {
       setIsProcessing(true);
       setAlertMessage('処理中です...');
