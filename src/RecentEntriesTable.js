@@ -7,6 +7,7 @@ const RecentEntriesTable = ({ recentEntries, handleEdit, handleDeleteRow, isProc
         <th>出品名</th>
         <th>在庫数</th>
         <th>発送代行ID</th>
+        <th>発送日</th>
         <th>お届け先氏名</th>
       </tr>
     </thead>
@@ -28,6 +29,7 @@ const RecentEntriesTable = ({ recentEntries, handleEdit, handleDeleteRow, isProc
           <td>{entry.kColumn}</td>
           <td>{entry.akColumn}</td>
           <td>{entry.alColumn}</td>
+          <td>{entry.amColumn}</td>
           <td>{entry.sColumn}</td>
         </tr>
       ))}

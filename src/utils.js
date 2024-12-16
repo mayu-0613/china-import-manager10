@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const AP_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋"];
 
-export const AA_OPTIONS = ["", "Shops"];
+export const AA_OPTIONS = ["", "Shops","Yahoo"];
 
 export const initializeInputs = () => ({
   D: '',

@@ -50,6 +50,7 @@ const InputComponent = ({ accessToken }) => {
 
       const rows = await fetchSheetData(selectedSheet, '売上管理表', 'K:S');
       const alData = await fetchSheetData(selectedSheet, '売上管理表', 'AL:AL');
+      const amData = await fetchSheetData(selectedSheet, '売上管理表', 'AM:AM');
       const akData = await fetchSheetData(selectedSheet, '売上管理表', 'AK:AK');
       const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D:AP');
 
@@ -58,6 +59,7 @@ const InputComponent = ({ accessToken }) => {
         kColumn: row[0] || '',
         sColumn: row[8] || '',
         alColumn: alData[rows.length - index - 1]?.[0] || '',
+        amColumn: amData[rows.length - index - 1]?.[0] || '',
         akColumn: akData[rows.length - index - 1]?.[0] || '',
         dColumn: dapData[rows.length - index - 1]?.[0] || '',
         nColumn: dapData[rows.length - index - 1]?.[10] || '',
