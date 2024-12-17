@@ -98,6 +98,26 @@ const validateInputs = () => {
   return true;
 };
 
+const handleIdentifierChange = async (identifierValue) => {
+  try {
+    const response = await fetchSheetData(selectedSheet, '入庫管理表', 'U:V');
+
+    const rows = response || [];
+    const matchedRow = rows.find((row) => row[0] === identifierValue); // U列で検索
+
+    if (matchedRow) {
+      setInputValue(matchedRow[1] || ''); // V列の値をセット
+      return true; // 検索成功
+    } else {
+      setInputValue(''); // 出品名フィールドをクリア
+      return false; // 検索失敗
+    }
+  } catch (error) {
+    console.error('識別番号の検索に失敗:', error);
+    return false; // エラー時も検索失敗として扱う
+  }
+};
+
 
 
 const handleInput = async () => {
@@ -287,6 +307,7 @@ const handleInput = async () => {
           setInputValue={setInputValue}
           handleInput={handleInput}
           isProcessing={isProcessing}
+          handleIdentifierChange={handleIdentifierChange} // 追加
         />
       )}
       {showAdditionalInputs && (
