@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const AP_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋"];
+export const AP_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原"];
 
 export const AA_OPTIONS = ["", "Shops","Yahoo"];
 
@@ -44,12 +44,13 @@ export const fetchSheetData = async (selectedSheet, sheetName, range) => {
   return response.data.values || [];
 };
 
-export const processRecentEntries = (rows, alData, akData) =>
+export const processRecentEntries = (rows, alData, amData, akData) =>
   rows.slice(-5).reverse().map((row, index) => ({
     index: rows.length - index,
     kColumn: row[0] || '',
     sColumn: row[8] || '',
     alColumn: alData[rows.length - index - 1]?.[0] || '',
+    amColumn: amData[rows.length - index - 1]?.[0] || '',
     akColumn: akData[rows.length - index - 1]?.[0] || '',
   }));
 
