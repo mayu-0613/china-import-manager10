@@ -1,6 +1,9 @@
 import React from 'react';
 
 const SheetSelector = ({ sheetIds, selectedSheet, setSelectedSheet }) => {
+  // デバッグ: 渡された props をコンソールに表示
+  console.log('SheetSelector props:', { sheetIds, selectedSheet });
+
   const handleSelectionChange = (e) => {
     const selectedValue = e.target.value;
     setSelectedSheet(selectedValue !== '' ? selectedValue : null);

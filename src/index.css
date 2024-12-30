@@ -217,6 +217,13 @@ select {
   box-sizing: border-box;
 }
 
+.additional-input input:disabled {
+  background-color: #d3d3d3; /* 背景をグレーアウト */
+  color: #888; /* テキスト色を薄く */
+  cursor: not-allowed; /* カーソルを無効状態に */
+}
+
+
 /* レスポンシブ対応 */
 @media (max-width: 600px) {
   .tabs button {
@@ -236,5 +243,13 @@ select {
     padding: 10px;
   }
 }
+
+input:disabled, select:disabled, textarea:disabled {
+  background-color: #d3d3d3; /* グレーアウト */
+  cursor: not-allowed; /* 無効化時のカーソル */
+  color: #888; /* 無効化時の文字色 */
+}
+
+
 
 

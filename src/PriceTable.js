@@ -1,12 +1,12 @@
 import React from 'react';
 
 const PriceTable = ({ priceData }) => {
-  if (priceData.length === 0) {
+  if (!priceData || priceData.length === 0) {
     return <p>データがありません。</p>;
   }
 
-  const headers = priceData[0]; // ヘッダー（1行目）
-  const rows = priceData.slice(1); // データ部分
+  const headers = priceData[0]; // 最初の行をヘッダーとして使用
+  const rows = priceData.slice(1); // 2行目以降をデータ行として使用
 
   return (
     <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>

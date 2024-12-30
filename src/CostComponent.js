@@ -1,35 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { fetchSheetData, getSheetIds } from './utils';
-import SheetSelector from './SheetSelector';
-import PriceTable from './PriceTable';
+import { fetchSheetData, getSheetIds } from './utils'; // ユーティリティ関数のインポート
+import SheetSelector from './SheetSelector'; // プルダウン用コンポーネント
+import PriceTable from './PriceTable'; // テーブル表示用コンポーネント
 
 const CostComponent = ({ accessToken }) => {
-  const [selectedSheet, setSelectedSheet] = useState(null); // 選択したスプレッドシート
+  const [selectedSheet, setSelectedSheet] = useState(null); // 選択されたスプレッドシート
   const [priceData, setPriceData] = useState([]); // 価格データ
   const [isLoading, setIsLoading] = useState(false); // ローディング状態
   const [error, setError] = useState(null); // エラー状態
 
-  // データ取得
+  useEffect(() => {
+    const sheets = getSheetIds();
+    console.log('取得したスプレッドシートID一覧:', sheets);
+  }, []);
+
   const fetchPriceData = async () => {
-    if (!selectedSheet) return; // スプレッドシートが選択されていない場合は何もしない
+    if (!selectedSheet) {
+      console.log('fetchPriceDataが呼び出されたが、スプレッドシートが未選択です。');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('価格データを取得中...');
-      const data = await fetchSheetData(selectedSheet, '入庫管理表', 'A:Z'); // 入庫管理表の全データ取得
+      console.log(`スプレッドシート「${selectedSheet}」からデータを取得中...`);
+      const data = await fetchSheetData(selectedSheet, '入庫管理表', 'A:AO');
+      console.log('取得したデータ:', data);
       setPriceData(data);
     } catch (err) {
-      console.error('価格データの取得に失敗しました:', err);
-      setError('価格データの取得に失敗しました。');
+      console.error('データ取得エラー:', err);
+      setError('データの取得に失敗しました。');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 選択したスプレッドシートが変更されたときにデータを取得
   useEffect(() => {
-    fetchPriceData();
+    if (selectedSheet) {
+      console.log('選択されたスプレッドシート:', selectedSheet);
+      fetchPriceData();
+    } else {
+      console.log('まだスプレッドシートが選択されていません。');
+    }
   }, [selectedSheet]);
 
   return (
@@ -38,19 +51,25 @@ const CostComponent = ({ accessToken }) => {
 
       {/* スプレッドシート選択プルダウン */}
       <SheetSelector
-        sheetIds={getSheetIds()} // スプレッドシートのリスト
+        sheetIds={getSheetIds()}
         selectedSheet={selectedSheet}
-        setSelectedSheet={setSelectedSheet}
+        setSelectedSheet={(sheet) => {
+          console.log('SheetSelectorで選択:', sheet);
+          setSelectedSheet(sheet);
+        }}
       />
 
-      {/* データの表示 */}
-      {isLoading && <p>データを読み込んでいます...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {!isLoading && !error && selectedSheet && (
-        <PriceTable priceData={priceData} /> 
-      )}
-
+      {/* スプレッドシートが選択されていない場合、メッセージを表示 */}
       {!selectedSheet && <p style={{ color: 'red' }}>スプレッドシートを選択してください。</p>}
+
+      {/* データ表示（スプレッドシートが選択された場合のみ） */}
+      {selectedSheet && (
+        <>
+          {isLoading && <p>データを読み込んでいます...</p>}
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {!isLoading && !error && <PriceTable priceData={priceData} />}
+        </>
+      )}
     </div>
   );
 };

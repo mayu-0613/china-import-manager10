@@ -30,6 +30,7 @@ const InputComponent = ({ accessToken }) => {
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [editingData, setEditingData] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
+  const [disableFields, setDisableFields] = useState([]);
 
   // 追加: 削除確認モーダル用の状態
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -84,19 +85,27 @@ const InputComponent = ({ accessToken }) => {
     fetchRecentEntries();
   }, [fetchRecentEntries]);
 
-const validateInputs = () => {
-  // 必須項目のバリデーション
-  const { D, N, S, T, W, X, AP } = additionalInputs;
-
-  // 追加入力項目が全て入力されているかを確認
-  if (!D || !N || !S || !T || !W || !X || !AP) {
-    setAlertMessage('必須項目が入力されていません。');
-    return false;
-  }
-
-  // K列の入力は必須ではないため、エラーメッセージを表示しない
-  return true;
-};
+  const validateInputs = () => {
+    const { D, N, S, T, U, W, X, Y, AP } = additionalInputs;
+  
+    // "らくらくメルカリ便" または "ゆうパケットポスト" の場合
+    if (S === 'らくらくメルカリ便' || S === 'ゆうパケットポスト') {
+      // D, N, S, APは必須
+      if (!D || !N || !S || !AP) {
+        setAlertMessage('必須項目が入力されていません。');
+        return false;
+      }
+    } else {
+      // 通常のバリデーション
+      if (!D || !N || !S || !T || !U || !W || !X || !Y || !AP) {
+        setAlertMessage('必須項目が入力されていません。');
+        return false;
+      }
+    }
+  
+    return true; // 全ての必須項目が入力済み
+  };
+  
 
 const handleIdentifierChange = async (identifierValue) => {
   try {
@@ -162,6 +171,23 @@ const handleInput = async () => {
       setIsProcessing(false);
     }
   };
+
+  const handleSetDeliveryType = (type) => {
+    console.log('Setting delivery type:', type); // ボタン押下時のログ
+    setAdditionalInputs((prev) => ({
+      ...prev,
+      S: type,
+    }));
+    setDisableFields(['T', 'U', 'W', 'X', 'Y']); // 無効化対象列を設定
+    console.log('Disable fields:', ['T', 'U', 'W', 'X', 'Y']);
+  };
+  
+
+    const handleEnableFields = () => {
+      setDisableFields([]); // 無効化を解除
+    };
+    
+
 
   const handleEdit = (entry) => {
     setEditingRowIndex(entry.index);
@@ -311,15 +337,20 @@ const handleInput = async () => {
         />
       )}
       {showAdditionalInputs && (
-        <AdditionalInputs
-          additionalInputs={additionalInputs}
-          setAdditionalInputs={setAdditionalInputs}
-          placeholders={placeholders}
-          akValue={akValue}
-          alValue={alValue}
-          handleBatchSubmit={handleBatchSubmit}
-          isProcessing={isProcessing}
-        />
+      <div>
+      <AdditionalInputs
+        additionalInputs={additionalInputs}
+        setAdditionalInputs={setAdditionalInputs}
+        placeholders={placeholders}
+        akValue={akValue}
+        alValue={alValue}
+        handleBatchSubmit={handleBatchSubmit}
+        isProcessing={isProcessing}
+        disableFields={disableFields} // 無効化フラグを渡す
+        setDisableFields={setDisableFields} // ここで渡す
+      />
+
+    </div>
       )}
       <RecentEntriesTable
         recentEntries={recentEntries}
@@ -341,5 +372,4 @@ const handleInput = async () => {
 };
 
 export default InputComponent;
-
 

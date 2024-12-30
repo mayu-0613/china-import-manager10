@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import axios from 'axios'; // 郵便番号検索API用
-import { AP_OPTIONS, AA_OPTIONS } from './utils'; // 選択肢リストをインポート
+import axios from 'axios';
+import { AP_OPTIONS, AA_OPTIONS } from './utils';
+
 
 const AdditionalInputs = ({
   additionalInputs,
@@ -12,27 +13,28 @@ const AdditionalInputs = ({
   alValue,
   handleBatchSubmit,
   isProcessing,
+  disableFields,
+  setDisableFields, // 親から渡された関数
 }) => {
   // 郵便番号から住所を取得して状態を更新する関数
   const handlePostalCodeChange = async (postalCode) => {
-    // ハイフンの自動挿入
-    let formattedPostalCode = postalCode.replace(/[^0-9]/g, ''); // 数字以外を削除
+    let formattedPostalCode = postalCode.replace(/[^0-9]/g, '');
     if (formattedPostalCode.length > 3) {
       formattedPostalCode = `${formattedPostalCode.slice(0, 3)}-${formattedPostalCode.slice(3)}`;
     }
 
-    setAdditionalInputs({ ...additionalInputs, Y: formattedPostalCode }); // 郵便番号を状態に反映
+    setAdditionalInputs({ ...additionalInputs, Y: formattedPostalCode });
 
-    if (formattedPostalCode.length === 8) { // 郵便番号が「123-4567」の形式になったら
+    if (formattedPostalCode.length === 8) {
       try {
         const response = await axios.get(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${formattedPostalCode.replace(/-/g, '')}`);
         if (response.data && response.data.results) {
           const { address1, address2, address3 } = response.data.results[0];
           setAdditionalInputs((prev) => ({
             ...prev,
-            X: address1 || '', // 都道府県
-            W: address2 || '', // 市区町村
-            T: address3 || '', // 町名以下
+            X: address1 || '',
+            W: address2 || '',
+            T: address3 || '',
           }));
         } else {
           alert('住所が見つかりませんでした。郵便番号を確認してください。');
@@ -44,6 +46,15 @@ const AdditionalInputs = ({
     }
   };
 
+  // S列の値を監視してグレーアウト対象を動的に更新
+  useEffect(() => {
+    if (additionalInputs.S === 'らくらくメルカリ便' || additionalInputs.S === 'ゆうパケットポスト') {
+      setDisableFields(['T', 'U', 'W', 'X', 'Y']); // グレーアウト
+    } else {
+      setDisableFields([]); // 有効化
+    }
+  }, [additionalInputs.S, setDisableFields]); // S列の値に依存
+
   return (
     <div>
       <div style={{ marginBottom: '10px' }}>
@@ -52,24 +63,50 @@ const AdditionalInputs = ({
       </div>
       <h3>追加のデータを入力してください</h3>
       {Object.keys(additionalInputs).map((col) => (
-        <div key={col} className="additional-input">
+        <div key={col} className="additional-input" style={{ marginBottom: '10px' }}>
+          {col === 'S' && (
+            <>
+              <div style={{ marginBottom: '10px' }}>
+                <button
+                  onClick={() =>
+                    setAdditionalInputs((prev) => ({ ...prev, S: 'らくらくメルカリ便' }))
+                  }
+                >
+                  らくらくメルカリ便
+                </button>
+                <button
+                  onClick={() =>
+                    setAdditionalInputs((prev) => ({ ...prev, S: 'ゆうパケットポスト' }))
+                  }
+                >
+                  ゆうパケットポスト
+                </button>
+              </div>
+            </>
+          )}
           {col === 'D' ? (
-<DatePicker
-  selected={additionalInputs.D ? new Date(additionalInputs.D) : null}
-  onChange={(date) => {
-    const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
-    setAdditionalInputs({ ...additionalInputs, D: formattedDate });
-  }}
-  dateFormat="yyyy/MM/dd"
-  placeholderText={placeholders[col]}
-/>
-
-
+            <DatePicker
+              selected={additionalInputs.D ? new Date(additionalInputs.D) : null}
+              onChange={(date) => {
+                const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+                setAdditionalInputs({ ...additionalInputs, D: formattedDate });
+              }}
+              dateFormat="yyyy/MM/dd"
+              placeholderText={placeholders[col]}
+              disabled={disableFields.includes(col)}
+              style={{
+                backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
+              }}
+            />
           ) : col === 'AP' ? (
             <select
               name="AP"
               value={additionalInputs.AP}
               onChange={(e) => setAdditionalInputs({ ...additionalInputs, AP: e.target.value })}
+              disabled={disableFields.includes(col)}
+              style={{
+                backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
+              }}
             >
               <option value="">{placeholders[col]}</option>
               {AP_OPTIONS.map((option, index) => (
@@ -81,8 +118,12 @@ const AdditionalInputs = ({
           ) : col === 'AA' ? (
             <select
               name="AA"
-              value={additionalInputs.AA || ""} // 初期値は空白
+              value={additionalInputs.AA || ""}
               onChange={(e) => setAdditionalInputs({ ...additionalInputs, AA: e.target.value })}
+              disabled={disableFields.includes(col)}
+              style={{
+                backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
+              }}
             >
               <option value=""></option>
               {AA_OPTIONS.map((option, index) => (
@@ -92,15 +133,17 @@ const AdditionalInputs = ({
               ))}
             </select>
           ) : col === 'Y' ? (
-            // 郵便番号フィールド
             <input
               type="text"
               value={additionalInputs.Y}
               onChange={(e) => handlePostalCodeChange(e.target.value)}
               placeholder={placeholders[col]}
+              disabled={disableFields.includes(col)}
+              style={{
+                backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
+              }}
             />
           ) : (
-            // その他のデータ用の通常の入力フォーム
             <input
               type="text"
               value={additionalInputs[col]}
@@ -108,6 +151,10 @@ const AdditionalInputs = ({
                 setAdditionalInputs({ ...additionalInputs, [col]: e.target.value })
               }
               placeholder={placeholders[col]}
+              disabled={disableFields.includes(col)}
+              style={{
+                backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
+              }}
             />
           )}
         </div>
