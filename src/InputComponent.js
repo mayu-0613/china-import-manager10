@@ -88,22 +88,24 @@ const InputComponent = ({ accessToken }) => {
   const validateInputs = () => {
     const { D, N, S, T, U, W, X, Y, AP } = additionalInputs;
   
-    // "らくらくメルカリ便" または "ゆうパケットポスト" の場合
+    console.log('Validating inputs:', { D, N, S, T, U, W, X, Y, AP }); // デバッグ用
+  
     if (S === 'らくらくメルカリ便' || S === 'ゆうパケットポスト') {
-      // D, N, S, APは必須
       if (!D || !N || !S || !AP) {
+        console.log('Validation failed: Required fields are missing.');
         setAlertMessage('必須項目が入力されていません。');
         return false;
       }
     } else {
-      // 通常のバリデーション
-      if (!D || !N || !S || !T || !U || !W || !X || !Y || !AP) {
+      if (!D || !N || !S || !T || !W || !X || !Y || !AP) {
+        console.log('Validation failed: Required fields are missing.');
         setAlertMessage('必須項目が入力されていません。');
         return false;
       }
     }
   
-    return true; // 全ての必須項目が入力済み
+    setAlertMessage(null); // エラーがない場合、アラートをクリア
+    return true;
   };
   
 
