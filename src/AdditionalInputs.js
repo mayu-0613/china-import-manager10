@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
-import { AP_OPTIONS, AA_OPTIONS } from './utils';
+import { AQ_OPTIONS, AA_OPTIONS } from './utils';
 
 
 const AdditionalInputs = ({
@@ -98,18 +98,18 @@ const AdditionalInputs = ({
                 backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
               }}
             />
-          ) : col === 'AP' ? (
+          ) : col === 'AQ' ? (
             <select
-              name="AP"
-              value={additionalInputs.AP}
-              onChange={(e) => setAdditionalInputs({ ...additionalInputs, AP: e.target.value })}
+              name="AQ"
+              value={additionalInputs.AQ}
+              onChange={(e) => setAdditionalInputs({ ...additionalInputs, AQ: e.target.value })}
               disabled={disableFields.includes(col)}
               style={{
                 backgroundColor: disableFields.includes(col) ? '#d3d3d3' : 'white',
               }}
             >
               <option value="">{placeholders[col]}</option>
-              {AP_OPTIONS.map((option, index) => (
+              {AQ_OPTIONS.map((option, index) => (
                 <option key={index} value={option}>
                   {option}
                 </option>

@@ -1,0 +1,110 @@
+/* DisplayComponent.css */
+
+.container {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.filter-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    margin-bottom: 5px;
+}
+
+.filter-box label {
+    font-weight: bold;
+}
+
+.filter-box input, select {
+    padding: 5px;
+    margin: 2px;           /* 各要素の間隔をさらに減らす */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.fetch-button {
+    padding: 10px 20px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.fetch-button:disabled {
+    background-color: #ccc;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.data-table th {
+    background-color: #007BFF;
+    color: white;
+}
+
+/* 送料の入力ボックス専用 */
+.data-table input[type="text"].shipping-cost {
+    width: 150px; /* 幅を拡張 */
+    padding: 8px;
+    border: 1px solid #007BFF;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.even-row {
+    background-color: #f2f2f2;
+}
+
+.odd-row {
+    background-color: #ffffff;
+}
+
+.status-message {
+    padding: 10px;
+    background-color: #f0f8ff;
+    color: #333;
+    border: 1px solid #007BFF;
+    border-radius: 5px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.pagination {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.pagination button {
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #007BFF;
+    color: white;
+}
+
+.pagination button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}

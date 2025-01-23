@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 担当者オプション
-export const AP_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原"];
+export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原"];
 
 // 販売チャネルオプション
 export const AA_OPTIONS = ["", "Shops", "Yahoo"];
@@ -16,7 +16,7 @@ export const initializeInputs = () => ({
   W: '',
   T: '',
   U: '',
-  AP: '',
+  AQ: '',
   AA: '',
 });
 
@@ -38,7 +38,7 @@ export const getPlaceholders = () => ({
   W: 'お届け先市区町村を入力してください',
   T: 'お届け先住所1を入力してください',
   U: 'お届け先住所2を入力してください',
-  AP: '担当者名を選択してください',
+  AQ: '担当者名を選択してください',
   AA: '空白 or Shopsを選択してください',
 });
 
@@ -137,7 +137,7 @@ export const extractEditingData = (entry) => ({
   W: entry.wColumn || '',
   T: entry.tColumn || '',
   U: entry.uColumn || '',
-  AP: entry.apColumn || '',
+  AQ: entry.aqColumn || '',
   AA: entry.aaColumn || '',
 });
 

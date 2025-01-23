@@ -53,7 +53,7 @@ const InputComponent = ({ accessToken }) => {
       const alData = await fetchSheetData(selectedSheet, '売上管理表', 'AL:AL');
       const amData = await fetchSheetData(selectedSheet, '売上管理表', 'AM:AM');
       const akData = await fetchSheetData(selectedSheet, '売上管理表', 'AK:AK');
-      const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D:AP');
+      const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D:AQ');
 
       const processedEntries = rows.slice(-5).reverse().map((row, index) => ({
         index: rows.length - index,
@@ -69,7 +69,7 @@ const InputComponent = ({ accessToken }) => {
         wColumn: dapData[rows.length - index - 1]?.[19] || '',
         tColumn: dapData[rows.length - index - 1]?.[16] || '',
         uColumn: dapData[rows.length - index - 1]?.[17] || '',
-        apColumn: dapData[rows.length - index - 1]?.[38] || '',
+        aqColumn: dapData[rows.length - index - 1]?.[39] || '',
         aaColumn: dapData[rows.length - index - 1]?.[23] || '',
       }));
 
@@ -86,18 +86,18 @@ const InputComponent = ({ accessToken }) => {
   }, [fetchRecentEntries]);
 
   const validateInputs = () => {
-    const { D, N, S, T, U, W, X, Y, AP } = additionalInputs;
+    const { D, N, S, T, U, W, X, Y, AQ } = additionalInputs;
   
-    console.log('Validating inputs:', { D, N, S, T, U, W, X, Y, AP }); // デバッグ用
+    console.log('Validating inputs:', { D, N, S, T, U, W, X, Y, AQ }); // デバッグ用
   
     if (S === 'らくらくメルカリ便' || S === 'ゆうパケットポスト') {
-      if (!D || !N || !S || !AP) {
+      if (!D || !N || !S || !AQ) {
         console.log('Validation failed: Required fields are missing.');
         setAlertMessage('必須項目が入力されていません。');
         return false;
       }
     } else {
-      if (!D || !N || !S || !T || !W || !X || !Y || !AP) {
+      if (!D || !N || !S || !T || !W || !X || !Y || !AQ) {
         console.log('Validation failed: Required fields are missing.');
         setAlertMessage('必須項目が入力されていません。');
         return false;
@@ -202,7 +202,7 @@ const handleInput = async () => {
       W: entry.wColumn || '',
       T: entry.tColumn || '',
       U: entry.uColumn || '',
-      AP: entry.apColumn || '',
+      AQ: entry.aqColumn || '',
       AA: entry.aaColumn || '',
     });
   };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import AuthComponent from './AuthComponent';
 import SearchComponent from './SearchComponent';
 import InputComponent from './InputComponent';
-import CostComponent from './CostComponent';
+import DisplayComponent from './DisplayComponent';
 
 const App = () => {
   const [isSignedIn, setIsSignedIn] = useState(false); // サインイン状態を管理
@@ -39,18 +39,17 @@ const App = () => {
               入力
             </button>
             <button
-              className={activeTab === 'analysis' ? 'active' : ''}
-              onClick={() => setActiveTab('analysis')}
+              className={activeTab === 'display' ? 'active' : ''}
+              onClick={() => setActiveTab('display')}
             >
-              価格
+              表示
             </button>
           </div>
-
 
           {/* アクティブなタブに応じてコンポーネントを表示 */}
           {activeTab === 'search' && <SearchComponent accessToken={accessToken} />}
           {activeTab === 'input' && <InputComponent accessToken={accessToken} />}
-          {activeTab === 'cost' && <CostComponent accessToken={accessToken} />}
+          {activeTab === 'display' && <DisplayComponent accessToken={accessToken} />}
         </div>
       )}
     </div>
