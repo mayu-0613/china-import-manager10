@@ -21,7 +21,7 @@ const SearchComponent = ({ accessToken }) => {
     setIsProcessing(true);
     setStatusMessage('検索中です...');
     const spreadsheetId = sheetIds[selectedSheet];
-    const mainRange = '売上管理表!A2:AP1000';
+    const mainRange = '売上管理表!A2:AQ1000';
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${mainRange}?key=${apiKey}`;
 
     try {
@@ -51,7 +51,7 @@ const SearchComponent = ({ accessToken }) => {
   };
 
   const searchInMercariSheet = async (value, spreadsheetId) => {
-    const mercariRange = 'メルカリ発送済み!A2:AP1000';
+    const mercariRange = 'メルカリ発送済み!A2:AQ1000';
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(mercariRange)}?key=${apiKey}`;
 
     try {
@@ -127,10 +127,10 @@ const SearchComponent = ({ accessToken }) => {
           <tbody>
             {results.map((row, index) => (
               <tr key={index}>
-                <td>{row[42]}</td>
+                <td>{row[43]}</td>
                 <td>{row[38]}</td>
-                <td>{row[39]}</td>
                 <td>{row[40]}</td>
+                <td>{row[41]}</td>
                 <td>{row[3]}</td>
                 <td>{row[10]}</td>
                 <td>{row[13]}</td>
@@ -143,7 +143,7 @@ const SearchComponent = ({ accessToken }) => {
                 <td>{row[26]}</td>
                 <td>{row[36]}</td>
                 <td>{row[37]}</td>
-                <td>{row[41]}</td>
+                <td>{row[42]}</td>
 
               </tr>
             ))}

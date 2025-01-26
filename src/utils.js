@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // 担当者オプション
-export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原"];
+export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原", "林"];
 
 // 販売チャネルオプション
-export const AA_OPTIONS = ["", "Shops", "Yahoo"];
+export const AA_OPTIONS = ["", "Shops", "Yahoo", "ラクマ", "ヤフオク", "Amazon"];
 
 // 入力フォームの初期値
 export const initializeInputs = () => ({
