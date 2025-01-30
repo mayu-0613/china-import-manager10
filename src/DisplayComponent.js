@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './DisplayComponent.css';
 import { updateBatchData } from './utils';
 import Papa from 'papaparse'; // ファイルの先頭に追加
 import { getDropdownOptions } from './utils'; // 必要な箇所に追加
 import { AQ_OPTIONS } from './utils';
+import { getSheetIds } from './utils';  // ✅ utils.js からインポート
+
 
 
 
@@ -27,6 +29,17 @@ const DisplayComponent = ({ accessToken }) => {
   const [matchCount, setMatchCount] = useState(0);
   const [ngCount, setNgCount] = useState(0);
   const [aqColumnData, setAqColumnData] = useState([]); // AQ列データ
+  const [matchResults, setMatchResults] = useState([]); // 一致結果を保存
+  const [selectedKItem, setSelectedKItem] = useState(""); // 選択された K列の値
+  const [kColumnOptions, setKColumnOptions] = useState([]); // K列の選択肢
+  const [nColumnData, setNColumnData] = useState([]); // ✅ N列（売上） ← 追加！
+  const [matchCountK, setMatchCountK] = useState(0); // K列（出品名）一致数
+  const [ngCountK, setNgCountK] = useState(0);       // K列（出品名）不一致数
+  const [matchCountN, setMatchCountN] = useState(0); // N列（売上）一致数
+  const [ngCountN, setNgCountN] = useState(0);       // N列（売上）不一致数
+
+
+
   
 
   const handleEditShippingCost = (rowIndex, value) => {
@@ -40,61 +53,287 @@ const DisplayComponent = ({ accessToken }) => {
   const handleCsvUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      Papa.parse(file, {
-        header: false,
-        skipEmptyLines: true,
-        complete: (result) => {
-          console.log('CSV読み込み結果:', result.data); // デバッグ
-          setCsvData(result.data);
-          setStatusMessage('CSVの読み込みが完了しました。');
-        },
-      });
-    }
-  };
-  
+        Papa.parse(file, {
+            header: false, // ヘッダーを無視
+            skipEmptyLines: true,
+            complete: (result) => {
+                const allData = result.data;
 
-  const fetchKColumnData = async () => {
-    const spreadsheetId = sheetIds[selectedSheet];
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/売上管理表!K:K?key=${apiKey}`;
-  
-    try {
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      setKColumnData(response.data.values.slice(1)); // ヘッダーを除外
-      setStatusMessage('K列データの取得が完了しました。');
-    } catch (error) {
-      console.error('K列のデータ取得に失敗:', error);
-      setStatusMessage('K列のデータ取得に失敗しました。');
-    }
-  };
+                // 1行目（タイトル行）をスキップ
+                const dataWithoutHeader = allData.slice(1);
 
-  const handleMatchCheck = () => {
-    console.log('一致チェックボタンが押されました'); // ボタン動作確認
-    console.log('CSVデータ:', csvData);
-    console.log('K列データ:', kColumnData);
+                console.log('CSVデータ（タイトル行をスキップ）:', dataWithoutHeader);
+                setCsvData(dataWithoutHeader);
+                setStatusMessage('CSVの読み込みが完了しました。');
+            },
+        });
+    }
+};
+
+
+  
+const fetchFilteredAColumnData = async () => {
+    console.log("=== フィルタリング後の A列データ取得開始 ===");
+    setStatusMessage('A列（日付）データ取得中...');
+
+    const sheetIdMap = getSheetIds();
+    let allAColumnData = [];
+
+    const sheetsToFetch = selectedSheet === '全て' 
+        ? Object.keys(sheetIdMap).filter(sheet => sheet !== '全て') 
+        : [selectedSheet];
+
+    console.log("取得対象のスプレッドシート:", sheetsToFetch);
+
+    for (const sheet of sheetsToFetch) {
+        const spreadsheetId = sheetIdMap[sheet];
+        if (!spreadsheetId) continue;
+
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/売上管理表!A:A?key=${apiKey}`;
+
+        try {
+            const response = await axios.get(url, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+
+            if (!response.data || !response.data.values) {
+                console.error(`⚠ A列（日付）データが見つかりません: ${sheet}`);
+                continue;
+            }
+
+            // ✅ A列のデータを取得（1行目のヘッダーを除外）
+            const aColumnData = response.data.values.slice(1).map(row => row[0]?.trim()).filter(Boolean);
+
+            console.log(`✅ 取得した A列（日付）データ (${sheet}):`, aColumnData);
+            allAColumnData = [...allAColumnData, ...aColumnData];
+
+        } catch (error) {
+            console.error(`⚠ A列（日付）のデータ取得に失敗: ${sheet}`, error);
+        }
+    }
+
+    console.log("📌 最終的に取得した A列（日付）データ:", allAColumnData);
+    return allAColumnData;
+};
+
+
+const fetchFilteredKColumnData = async () => {
+    return await fetchFilteredColumnData(10); // K列（出品名）
+};
+
+const fetchFilteredNColumnData = async () => {
+  return await fetchFilteredColumnData(13); // ✅ N列（売上）
+};
+
+
+const fetchFilteredBLColumnData = async () => {
+    return await fetchFilteredColumnData(63); // BL列（メルカリ送料）
+};
+
+const fetchFilteredColumnData = async (columnIndex) => {
+  console.log(`=== フィルタリング後の ${columnIndex}列データ取得開始 ===`);
+  setStatusMessage(`${columnIndex}列データ取得中...`);
+
+  const sheetIdMap = getSheetIds();
+  let allColumnData = [];
+
+  const sheetsToFetch = selectedSheet === '全て' 
+      ? Object.keys(sheetIdMap).filter(sheet => sheet !== '全て') 
+      : [selectedSheet];
+
+  for (const sheet of sheetsToFetch) {
+      const spreadsheetId = sheetIdMap[sheet];
+      if (!spreadsheetId) continue;
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/売上管理表!A2:CB1000?key=${apiKey}`;
+
+      try {
+          const response = await axios.get(url, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+          });
+
+          if (!response.data || !response.data.values) {
+              console.error(`${columnIndex}列データが見つかりません: ${sheet}`);
+              continue;
+          }
+
+          const allData = response.data.values;
+
+          const filteredColumnData = allData.slice(2).filter((row) => {
+              const rowDate = formatDate(row[3]?.trim() || '');
+
+              const dateMatch =
+                  selectedYear && selectedMonth
+                      ? rowDate === `${selectedYear}-${selectedMonth}`
+                      : selectedYear
+                      ? rowDate.startsWith(selectedYear)
+                      : selectedMonth
+                      ? rowDate.endsWith(`-${selectedMonth}`)
+                      : true;
+
+              return dateMatch;
+          }).map(row => row[columnIndex]?.trim()).filter(Boolean);
+
+          allColumnData = [...allColumnData, ...filteredColumnData];
+
+      } catch (error) {
+          console.error(`${columnIndex}列のデータ取得に失敗: ${sheet}`, error);
+      }
+  }
+
+  console.log(`取得した全てのフィルタリング後の ${columnIndex}列データ:`, allColumnData);
+  return allColumnData;
+};
+
+const formatCsvDate = (dateString) => {
+  if (!dateString) return "";
+
+  // 日付と時間がある場合、空白で分割して日付部分のみを取得
+  const dateOnly = dateString.split(" ")[0];
+
+  // `/` か `-` 区切りで分割
+  const parts = dateOnly.includes("/") ? dateOnly.split("/") : dateOnly.split("-");
+
+  if (parts.length === 3) {
+    let [year, month, day] = parts;
     
+    // 月と日を2桁に統一
+    month = month.padStart(2, "0");
+    day = day.padStart(2, "0");
 
-    if (!kColumnData.length || !csvData.length) {
-      setStatusMessage('K列データまたはCSVデータが不足しています。');
-      return;
-    }
+    return `${year}/${month}/${day}`;  // YYYY/MM/DD に統一
+  }
   
-    let match = 0;
-    let ng = 0;
+  return dateOnly; // 変換できない場合はそのまま
+};
+
+
+
+
+const handleMatchCheck = async () => {   
+  console.log('=== 一致チェックボタンが押されました ===');
+
+  setStatusMessage('スプレッドシートデータ取得中...');
   
-    csvData.forEach((row) => {
-      const itemName = row[5]?.trim(); // CSVのF列 (0-based indexで5番目)
-      const isMatch = kColumnData.some((kValue) => kValue[0]?.trim() === itemName);
-      console.log(`CSV出品名: ${itemName}, 一致: ${isMatch}`);
+  // ✅ 必要な列のデータを取得
+  const fetchedAColumnData = await fetchFilteredAColumnData(); // スプレッドシートA列（日付）
+  const fetchedKColumnData = await fetchFilteredKColumnData(); // スプレッドシートK列（出品名）
+  const fetchedNColumnData = await fetchFilteredNColumnData(); // スプレッドシートN列（売上）
+  const fetchedBLColumnData = await fetchFilteredBLColumnData(); // スプレッドシートBL列（送料）
+
+  if (!csvData.length) {
+    setStatusMessage('CSVデータがありません。CSVをアップロードしてください。');
+    return;
+  }
+
+  if (!fetchedAColumnData.length || !fetchedKColumnData.length || !fetchedNColumnData.length || !fetchedBLColumnData.length) {
+    setStatusMessage('スプレッドシートデータの取得に失敗しました。');
+    return;
+  }
+
+  console.log("取得したフィルタリング後の A列（日付）データ:", fetchedAColumnData);
+  console.log("取得したフィルタリング後の K列（出品名）データ:", fetchedKColumnData);
+  console.log("取得したフィルタリング後の N列（売上）データ:", fetchedNColumnData);
+  console.log("取得したフィルタリング後の BL列（送料）データ:", fetchedBLColumnData);
+
+  let matchCount = 0;
+  let ngCount = 0;
+  let results = [];
+
+  csvData.forEach((row, index) => {
+    const csvDate = formatCsvDate(row[1]?.trim() || "");  // CSVのB列（日付）
+    const csvItemName = row[5]?.trim() || "";  // CSVのF列（出品名）
+    const csvPrice = parseFloat(row[7]?.trim()) || 0; // H列（商品代金）
+    const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
+
+    // ✅ 日付の比較：スプレッドシートの日付とCSVの日付の前半部分を比較
+    const isDateMatch = fetchedAColumnData.some((aValue) => {
+      const sheetDate = aValue?.trim();
+      return sheetDate === csvDate.split(" ")[0]; // CSVの日付の`YYYY/MM/DD`部分のみ比較
     });
-    
-  
-    setMatchCount(match);
-    setNgCount(ng);
-    setStatusMessage(`チェック完了: 一致 ${match}件, NG ${ng}件`);
-  };
-  
+
+    // ✅ 出品名の比較
+    const isItemMatch = fetchedKColumnData.some((kValue) => kValue?.trim() === csvItemName);
+
+    // ✅ 売上の比較（小数点なし）
+    const isPriceMatch = fetchedNColumnData.some((nValue) => parseFloat(nValue).toFixed(0) === csvPrice.toFixed(0));
+
+    // ✅ 送料の比較（スプレッドシートの空白は`0`として扱う）
+    const isShippingMatch = fetchedBLColumnData.some((blValue) => {
+      const sheetShipping = parseFloat(blValue || "0").toFixed(0); // 空白の場合は`0`
+      return sheetShipping === csvShipping.toFixed(0);
+    });
+
+    // ✅ すべての条件が一致したら「●」、1つでも不一致なら「×」
+    const isAllMatch = isDateMatch && isItemMatch && isPriceMatch && isShippingMatch;
+
+    console.log(`行 ${index + 1} | 日付: ${csvDate} (一致: ${isDateMatch}), 出品名: ${csvItemName} (一致: ${isItemMatch}), 売上: ${csvPrice} (一致: ${isPriceMatch}), 送料: ${csvShipping} (一致: ${isShippingMatch}) → 判定: ${isAllMatch ? "●" : "×"}`);
+
+    results.push({
+      csvDate: csvDate || "---",  // 日付が空の場合は"---"
+      csvItem: csvItemName || "---",  // 出品名が空の場合は"---"
+      csvPrice: isNaN(csvPrice) ? "---" : csvPrice.toFixed(2),  // NaNの場合は"---"
+      csvShipping: isNaN(csvShipping) ? "---" : csvShipping.toFixed(2),
+      matched: isAllMatch,  // 全ての条件が一致した場合に「●」
+    });
+
+    if (isAllMatch) {
+      matchCount++;
+    } else {
+      ngCount++;
+    }
+  });
+
+  console.log(`最終結果 - 一致: ${matchCount}, 不一致: ${ngCount}`);
+
+  setMatchResults(results);
+  setMatchCount(matchCount);
+  setNgCount(ngCount);
+  setStatusMessage(`チェック完了: 一致 ${matchCount}件, NG ${ngCount}件`);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+// ✅ 一致チェック時にK列のデータを取得するための関数
+const fetchKColumnData = async () => {
+  console.log("=== K列データ取得開始 ===");
+  setStatusMessage('K列データ取得中...');
+
+  const spreadsheetId = sheetIds[selectedSheet];
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/売上管理表!K:K?key=${apiKey}`;
+
+  try {
+      const response = await axios.get(url, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!response.data || !response.data.values) {
+          console.error("K列データが見つかりません");
+          return [];
+      }
+
+      const fetchedKColumn = response.data.values.slice(1).map((row) => row[0]); // ヘッダーを除外
+      console.log("取得したK列データ:", fetchedKColumn);
+      return fetchedKColumn; // データを返す
+  } catch (error) {
+      console.error("K列のデータ取得に失敗:", error);
+      setStatusMessage("K列のデータ取得に失敗しました。");
+      return [];
+  }
+};
+
+
+
+
   
 
   const updateSheetData = async (rowIndex, value) => {
@@ -161,55 +400,67 @@ const DisplayComponent = ({ accessToken }) => {
     const spreadsheetId = sheetIds[selectedSheet];
     const mainRange = '売上管理表!A2:CB1000';
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${mainRange}?key=${apiKey}`;
-  
+
     try {
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const allData = response.data.values;
-  
-      const filteredData = allData.slice(2).filter((row) => {
-        const shippingCostText = row[61]?.replace(/[^0-9.]/g, '').trim();
-        const shippingCost = shippingCostText ? parseFloat(shippingCostText) : NaN;
-        const rowDate = formatDate(row[3]?.trim() || '');
-  
-        const dateMatch =
-          selectedYear && selectedMonth
-            ? rowDate === `${selectedYear}-${selectedMonth}`
-            : selectedYear
-            ? rowDate.startsWith(selectedYear)
-            : selectedMonth
-            ? rowDate.endsWith(`-${selectedMonth}`)
-            : true;
-  
-        const excludeBlankMatch =
-          excludeBlankShippingCost
-            ? shippingCostText && !isNaN(shippingCost) && shippingCost > 0
-            : true;
-  
-        return (
-          dateMatch &&
-          (selectedPerson ? row[42]?.trim() === selectedPerson.trim() : true) && // AQ列 (42番目)
-          (selectedShippingCostMin !== ''
-            ? shippingCost >= parseFloat(selectedShippingCostMin)
-            : true) &&
-          (selectedShippingCostMax !== ''
-            ? shippingCost <= parseFloat(selectedShippingCostMax)
-            : true)
-        );
-      });
-  
-      setData([allData[0], ...filteredData]);
-      setCurrentPage(0);
-      setStatusMessage(`データ取得完了！ 件数: ${filteredData.length}`);
+        const response = await axios.get(url, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const allData = response.data.values;
+
+        // ✅ K列（出品名）のデータを取得
+        const extractedKColumnData = allData.slice(2).map(row => row[10]?.trim()).filter(Boolean);
+        setKColumnData(extractedKColumnData);
+        console.log("取得したK列データ:", extractedKColumnData);
+
+        // ✅ N列（売上）のデータを取得
+        const extractedNColumnData = allData.slice(2).map(row => row[13]?.trim()).filter(Boolean);
+        setNColumnData(extractedNColumnData);
+        console.log("取得したN列データ:", extractedNColumnData);
+
+        // ✅ データのフィルタリング（スプレッドシート側のフィルター）
+        const filteredData = allData.slice(2).filter((row) => {
+            const shippingCostText = row[61]?.replace(/[^0-9.]/g, '').trim();
+            const shippingCost = shippingCostText ? parseFloat(shippingCostText) : NaN;
+            const rowDate = formatDate(row[3]?.trim() || '');
+
+            const dateMatch =
+                selectedYear && selectedMonth
+                    ? rowDate === `${selectedYear}-${selectedMonth}`
+                    : selectedYear
+                        ? rowDate.startsWith(selectedYear)
+                        : selectedMonth
+                            ? rowDate.endsWith(`-${selectedMonth}`)
+                            : true;
+
+            const excludeBlankMatch =
+                excludeBlankShippingCost
+                    ? shippingCostText && !isNaN(shippingCost) && shippingCost > 0
+                    : true;
+
+            return (
+                dateMatch &&
+                (selectedPerson ? row[42]?.trim() === selectedPerson.trim() : true) && // AQ列 (42番目)
+                (selectedShippingCostMin !== ''
+                    ? shippingCost >= parseFloat(selectedShippingCostMin)
+                    : true) &&
+                (selectedShippingCostMax !== ''
+                    ? shippingCost <= parseFloat(selectedShippingCostMax)
+                    : true)
+            );
+        });
+
+        setData([allData[0], ...filteredData]);
+        setCurrentPage(0);
+        setStatusMessage(`データ取得完了！ 件数: ${filteredData.length}`);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      setStatusMessage('データの取得に失敗しました。');
+        console.error('Error fetching data:', error);
+        setStatusMessage('データの取得に失敗しました。');
     } finally {
-      setIsProcessing(false);
+        setIsProcessing(false);
     }
-  };
-  
+};
+
+
 
 
 
@@ -236,13 +487,6 @@ const handleSaveShippingCost = async (rowIndex) => {
 };
 
 
-
-
-
-
-
-
-
 const paginatedData = data.slice(1).slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage);
 
 return (
@@ -254,10 +498,11 @@ return (
     <div className="filter-box">
       <label>データ件数: {data.length - 1}</label>
       <select value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)}>
-        {Object.keys(sheetIds).map((sheetName) => (
-          <option key={sheetName} value={sheetName}>{sheetName}</option>
-        ))}
-      </select>
+  {Object.keys(getSheetIds()).map((sheetName) => (
+    <option key={sheetName} value={sheetName}>{sheetName}</option>
+  ))}
+</select>
+
 
       <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
         <option value="">年を選択</option>
@@ -298,17 +543,29 @@ return (
 <div className="csv-upload">
   <label>CSVをアップロード:</label>
   <input type="file" accept=".csv" onChange={handleCsvUpload} />
-  <button onClick={handleMatchCheck} disabled={!csvData.length || !kColumnData.length}>
-    一致チェック
-  </button>
+  <button 
+  onClick={async () => {
+    console.log('✅ 一致チェックボタンが押されました - onClick 発火');
+    await handleMatchCheck();
+  }} 
+  disabled={!csvData.length}
+>
+  一致チェック
+</button>
+
+
+
+
 </div>
+
 
 {/* 一致チェック結果 */}
 <div className="result-box">
   <h3>チェック結果:</h3>
-  <p>一致件数: {matchCount}</p>
-  <p>NG件数: {ngCount}</p>
+  <p>出品名 一致件数: {matchCountK} / NG件数: {ngCountK}</p>
+  <p>売上 一致件数: {matchCountN} / NG件数: {ngCountN}</p>
 </div>
+
 
 
     {data.length > 0 && (
@@ -351,8 +608,44 @@ return (
         </div>
       </div>
     )}
+    
+
+    <div className="result-details">
+  <h3>一致チェック結果:</h3>
+  <table className="match-table">
+    <thead>
+      <tr>
+        <th>CSVの日付</th>
+        <th>CSVの出品名</th>
+        <th>CSVの売上</th>
+        <th>CSVのメルカリ送料</th>
+        <th>一致</th>
+      </tr>
+    </thead>
+    <tbody>
+      {matchResults.map((result, index) => (
+        <tr key={index}>
+          <td>{result.csvDate}</td>
+          <td>{result.csvItem}</td>
+          <td>{result.csvPrice}</td>
+          <td>{result.csvShipping}</td>
+          <td style={{ textAlign: 'center' }}>
+            {result.matched ? '●' : '×'}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+
+
+
   </div>
+  
+  
 );
+
 
 
 };
