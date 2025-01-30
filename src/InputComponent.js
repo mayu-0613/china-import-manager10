@@ -111,10 +111,10 @@ const InputComponent = ({ accessToken }) => {
 
 const handleIdentifierChange = async (identifierValue) => {
   try {
-    const response = await fetchSheetData(selectedSheet, '入庫管理表', 'U:V');
+    const response = await fetchSheetData(selectedSheet, '入庫管理表', 'X:Y');
 
     const rows = response || [];
-    const matchedRow = rows.find((row) => row[0] === identifierValue); // U列で検索
+    const matchedRow = rows.find((row) => row[0] === identifierValue); // X列で検索
 
     if (matchedRow) {
       setInputValue(matchedRow[1] || ''); // V列の値をセット
