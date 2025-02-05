@@ -37,6 +37,7 @@ const DisplayComponent = ({ accessToken }) => {
   const [ngCountK, setNgCountK] = useState(0);       // K列（出品名）不一致数
   const [matchCountN, setMatchCountN] = useState(0); // N列（売上）一致数
   const [ngCountN, setNgCountN] = useState(0);       // N列（売上）不一致数
+  
 
 
 
@@ -146,7 +147,7 @@ const fetchFilteredColumnData = async (columnIndex) => {
       const spreadsheetId = sheetIdMap[sheet];
       if (!spreadsheetId) continue;
 
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/売上管理表!A2:CB1000?key=${apiKey}`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/売上管理表!A2:CD1000?key=${apiKey}`;
 
       try {
           const response = await axios.get(url, {
@@ -221,6 +222,8 @@ const filterByDate = (dateString) => {
   return dateString;
 };
 
+
+
 const handleMatchCheck = async () => {   
   console.log('=== 一致チェックボタンが押されました ===');
 
@@ -237,7 +240,7 @@ const handleMatchCheck = async () => {
     return;
   }
 
-  if (!fetchedDColumnData.length || !fetchedKColumnData.length || !fetchedNColumnData.length || !fetchedBLColumnData.length) {
+  if (!fetchedDColumnData.length || !fetchedKColumnData.length || !fetchedNColumnData.length || !fetchedBLColumnData.length ) {
     setStatusMessage('スプレッドシートデータの取得に失敗しました。');
     return;
   }
@@ -247,33 +250,37 @@ const handleMatchCheck = async () => {
   console.log("取得したフィルタリング後の N列（売上）データ:", fetchedNColumnData);
   console.log("取得したフィルタリング後の BL列（送料）データ:", fetchedBLColumnData);
 
+  
+
+
   let matchCount = 0;
   let ngCount = 0;
   let results = [];
 
-  // ✅ CSVデータもスプレッドシートのフィルターと同じ条件で絞り込み
-  const filteredCsvData = csvData.filter((row) => {
-    const csvDate = formatCsvDate(row[1]?.trim() || ""); // CSVのB列（日付）
-    const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
+// ✅ CSVデータのフィルタリング処理
+const filteredCsvData = csvData.filter((row) => {
+  const csvDate = formatCsvDate(row[1]?.trim() || ""); // CSVのB列（日付）
+  const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
 
-    // ✅ フィルター適用
-    const dateMatch = selectedYear && selectedMonth
-      ? csvDate.startsWith(`${selectedYear}/${selectedMonth.padStart(2, '0')}`)
-      : selectedYear
-      ? csvDate.startsWith(selectedYear)
-      : selectedMonth
-      ? csvDate.includes(`/${selectedMonth.padStart(2, '0')}/`)
-      : true;
+  // ✅ フィルター適用
+  const dateMatch = selectedYear && selectedMonth
+    ? csvDate.startsWith(`${selectedYear}/${selectedMonth.padStart(2, '0')}`)
+    : selectedYear
+    ? csvDate.startsWith(selectedYear)
+    : selectedMonth
+    ? csvDate.includes(`/${selectedMonth.padStart(2, '0')}/`)
+    : true;
 
-    const shippingCostMatch = selectedShippingCostMin !== '' 
-      ? csvShipping >= parseFloat(selectedShippingCostMin)
-      : true &&
-      selectedShippingCostMax !== ''
-      ? csvShipping <= parseFloat(selectedShippingCostMax)
-      : true;
+  const shippingCostMatch = selectedShippingCostMin !== '' 
+    ? csvShipping >= parseFloat(selectedShippingCostMin)
+    : true &&
+    selectedShippingCostMax !== ''
+    ? csvShipping <= parseFloat(selectedShippingCostMax)
+    : true;
 
-    return dateMatch && shippingCostMatch;
-  });
+  return dateMatch && shippingCostMatch;
+});
+
 
   console.log("フィルタリング後のCSVデータ:", filteredCsvData);
 
@@ -284,30 +291,68 @@ const handleMatchCheck = async () => {
     const csvPrice = parseFloat(row[7]?.trim()) || 0; // H列（商品代金）
     const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
 
-    // ✅ 各項目の比較結果
-    const isDateMatch = fetchedDColumnData.some((dValue) => dValue?.trim() === csvDate.split(" ")[0]);
-    const isItemMatch = fetchedKColumnData.some((kValue) => kValue?.trim() === csvItemName);
-    const isPriceMatch = fetchedNColumnData.some((nValue) => parseFloat(nValue).toFixed(0) === csvPrice.toFixed(0));
-    const isShippingMatch = fetchedBLColumnData.some((blValue) => {
-      // ✅ スプレッドシートの送料 (BL列) を数値化（「￥」「,」を削除）
-      let sheetShippingRaw = blValue;
-      let sheetShipping = 
-        blValue === undefined || blValue === "" || isNaN(parseFloat(blValue.replace(/[￥,]/g, '')))
-          ? 0  // 空白・未定義・NaN の場合は 0
-          : parseFloat(blValue.replace(/[￥,]/g, '')); // 数値変換（「￥」「,」を削除）
-    
-      // ✅ CSVの送料 (J列) も数値化
-      let csvShippingFormatted = isNaN(parseFloat(csvShipping)) ? 0 : parseFloat(csvShipping);
-    
-      // ✅ デバッグログ (比較の詳細を表示)
-      console.log(
-        `🚀 送料比較 - スプレッドシート (元データ): "${sheetShippingRaw}" -> ${sheetShipping} (${typeof sheetShipping}), ` +
-        `CSV: ${csvShipping} -> ${csvShippingFormatted} (${typeof csvShippingFormatted}), ` +
-        `一致: ${sheetShipping === csvShippingFormatted}`
-      );
-    
-      return sheetShipping === csvShippingFormatted; // 数値同士で比較
+// ✅ 日付 + 出品名の比較（セットで処理）
+const matchedRows = fetchedDColumnData.map((dValue, index) => {
+  const sheetDate = new Date(dValue?.trim()); // 日付をDate型に変換
+  const sheetItem = fetchedKColumnData[index]?.trim()?.toLowerCase(); // 出品名を小文字に統一
+
+  console.log(`🔍 ${index + 1}行目 - スプレッドシート日付: ${sheetDate}, 商品名: ${sheetItem}`);
+
+  return { index, date: sheetDate, item: sheetItem };
+}).filter((row) => row.item === csvItemName.trim().toLowerCase()); // ✅ 出品名が一致する行を抽出
+
+console.log("📝 出品名が一致するデータ:", matchedRows);
+
+// ✅ 出品名が一致する行の中で、日付が最も近いものを選択
+let bestMatch = null;
+let minDiff = Infinity;
+
+matchedRows.forEach((row) => {
+  const csvDateObj = new Date(csvDate.split(" ")[0]);
+  const diff = Math.abs(row.date - csvDateObj);
+
+  console.log(`📆 日付比較: CSV日付(${csvDateObj}) vs シート日付(${row.date}) → 差分: ${diff}`);
+
+  if (diff <= 86400000 && diff < minDiff) { // ✅ ±1日以内で、最も近いものを探す
+    bestMatch = row;
+    minDiff = diff;
+  }
+});
+
+console.log("✅ 最も近いマッチング結果:", bestMatch);
+
+
+// ✅ 最も近い日付が見つかった場合のみ一致と判定
+const isDateMatch = !!bestMatch;
+const isItemMatch = !!bestMatch;
+
+
+
+    const isPriceMatch = fetchedNColumnData.some((nValue) => {
+     let sheetPrice = nValue === undefined || nValue === "" || isNaN(parseFloat(nValue.replace(/[￥,]/g, '')))
+      ? 0 
+      : parseFloat(nValue.replace(/[￥,]/g, ''));
+
+      return sheetPrice.toFixed(0) === csvPrice.toFixed(0);
     });
+
+
+
+    
+    const isShippingMatch = fetchedBLColumnData.some((blValue) => {
+     let sheetShipping = blValue === undefined || blValue === "" || isNaN(parseFloat(blValue.replace(/[￥,]/g, ''))) 
+      ? 0  
+      : parseFloat(blValue.replace(/[￥,]/g, ''));
+
+      let csvShippingFormatted = isNaN(parseFloat(csvShipping)) ? 0 : parseFloat(csvShipping);
+
+      console.log(
+      `🚀 送料比較 - スプレッドシート: ${sheetShipping}, CSV: ${csvShippingFormatted}, ` +
+      `一致: ${sheetShipping === csvShippingFormatted}`
+      );
+
+      return sheetShipping.toFixed(0) === csvShippingFormatted.toFixed(0);
+    });  
     
 
     // ✅ すべての条件が一致したら「●」、不一致の項目を赤色に
@@ -335,6 +380,8 @@ const handleMatchCheck = async () => {
   setNgCount(ngCount);
   setStatusMessage(`チェック完了: 一致 ${matchCount}件, NG ${ngCount}件`);
 };
+
+
 
 
 
@@ -607,9 +654,9 @@ return (
 {/* 一致チェック結果 */}
 <div className="result-box">
   <h3>チェック結果:</h3>
-  <p>出品名 一致件数: {matchCountK} / NG件数: {ngCountK}</p>
-  <p>売上 一致件数: {matchCountN} / NG件数: {ngCountN}</p>
+  <p>● 一致件数: {matchCount} / × 不一致件数: {ngCount}</p>
 </div>
+
 
 
 
@@ -691,6 +738,7 @@ return (
     </tbody>
   </table>
 </div>
+
 
 
 
