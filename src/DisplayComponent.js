@@ -74,8 +74,8 @@ const DisplayComponent = ({ accessToken }) => {
 
   
 const fetchFilteredDColumnData = async () => {
-  console.log("=== フィルタリング後の D列（購入日）データ取得開始 ===");
-  setStatusMessage('D列（購入日）データ取得中...');
+  console.log("=== フィルタリング後の D列（日付）データ取得開始 ===");
+  setStatusMessage('D列（日付）データ取得中...');
 
   const sheetIdMap = getSheetIds();
   let allDColumnData = [];
@@ -98,24 +98,36 @@ const fetchFilteredDColumnData = async () => {
           });
 
           if (!response.data || !response.data.values) {
-              console.error(`⚠ D列（購入日）データが見つかりません: ${sheet}`);
+              console.error(`⚠ D列（日付）データが見つかりません: ${sheet}`);
               continue;
           }
 
           // ✅ D列のデータを取得（1行目のヘッダーを除外）
-          const dColumnData = response.data.values.slice(1).map(row => row[0]?.trim()).filter(Boolean);
+          const dColumnData = response.data.values.slice(1).map(row => {
+              if (!row[0]) return null;
+              
+              // ✅ もし `Date` オブジェクトの場合、`YYYY/MM/DD` に変換
+              let dateValue = new Date(row[0]);
+              if (!isNaN(dateValue)) {
+                  return dateValue.toISOString().split("T")[0].replace(/-/g, "/"); // `YYYY/MM/DD` 形式
+              }
 
-          console.log(`✅ 取得した D列（購入日）データ (${sheet}):`, dColumnData);
+              // ✅ 文字列の場合も `YYYY/MM/DD` に変換
+              return formatCsvDate(row[0]?.trim());
+          }).filter(Boolean);
+
+          console.log(`✅ 取得した D列（日付）データ (${sheet}):`, dColumnData);
           allDColumnData = [...allDColumnData, ...dColumnData];
 
       } catch (error) {
-          console.error(`⚠ D列（購入日）のデータ取得に失敗: ${sheet}`, error);
+          console.error(`⚠ D列（日付）のデータ取得に失敗: ${sheet}`, error);
       }
   }
 
-  console.log("📌 最終的に取得した D列（購入日）データ:", allDColumnData);
+  console.log("📌 最終的に取得した D列（日付）データ:", allDColumnData);
   return allDColumnData;
 };
+
 
 
 
@@ -187,27 +199,32 @@ const fetchFilteredColumnData = async (columnIndex) => {
   return allColumnData;
 };
 
-const formatCsvDate = (dateString) => {
+const formatDateToYYYYMMDD = (dateString) => {
   if (!dateString) return "";
 
-  // 日付と時間がある場合、空白で分割して日付部分のみを取得
-  const dateOnly = dateString.split(" ")[0];
+  try {
+    // 日付部分のみ取得（時刻を削除）
+    const dateOnly = dateString.split(" ")[0];
 
-  // `/` か `-` 区切りで分割
-  const parts = dateOnly.includes("/") ? dateOnly.split("/") : dateOnly.split("-");
+    // `/` か `-` 区切りで分割
+    const parts = dateOnly.includes("/") ? dateOnly.split("/") : dateOnly.split("-");
 
-  if (parts.length === 3) {
-    let [year, month, day] = parts;
-    
-    // 月と日を2桁に統一
-    month = month.padStart(2, "0");
-    day = day.padStart(2, "0");
+    if (parts.length === 3) {
+      let [year, month, day] = parts.map(part => part.padStart(2, "0")); // 月と日を2桁に統一
+      return `${year}/${month}/${day}`;  // YYYY/MM/DD に統一
+    }
 
-    return `${year}/${month}/${day}`;  // YYYY/MM/DD に統一
+    return dateOnly; // 変換できない場合はそのまま
+  } catch (error) {
+    console.error("日付フォーマット変換エラー:", dateString, error);
+    return "";
   }
-  
-  return dateOnly; // 変換できない場合はそのまま
 };
+
+
+const formatCsvDate = (dateString) => formatDateToYYYYMMDD(dateString);
+
+
 
 
 const filterByDate = (dateString) => {
@@ -259,8 +276,8 @@ const handleMatchCheck = async () => {
 
 // ✅ CSVデータのフィルタリング処理
 const filteredCsvData = csvData.filter((row) => {
-  const csvDate = formatCsvDate(row[1]?.trim() || ""); // CSVのB列（日付）
-  const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
+  const csvDate = formatCsvDate(row[2]?.trim() || ""); // CSVのB列（日付）
+  const csvShipping = parseFloat(row[10]?.trim()) || 0; // J列（配送料）
 
   // ✅ フィルター適用
   const dateMatch = selectedYear && selectedMonth
@@ -286,14 +303,14 @@ const filteredCsvData = csvData.filter((row) => {
 
   // ✅ 一致チェック処理
   filteredCsvData.forEach((row, index) => {
-    const csvDate = formatCsvDate(row[1]?.trim() || "");  // CSVのB列（日付）
-    const csvItemName = row[5]?.trim() || "";  // CSVのF列（出品名）
-    const csvPrice = parseFloat(row[7]?.trim()) || 0; // H列（商品代金）
-    const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
+    const csvDate = formatCsvDate(row[2]?.trim() || "");  // CSVのB列（日付）
+    const csvItemName = row[6]?.trim() || "";  // CSVのF列（出品名）
+    const csvPrice = parseFloat(row[8]?.trim()) || 0; // H列（商品代金）
+    const csvShipping = parseFloat(row[10]?.trim()) || 0; // J列（配送料）
 
 // ✅ 日付 + 出品名の比較（セットで処理）
 const matchedRows = fetchedDColumnData.map((dValue, index) => {
-  const sheetDate = new Date(dValue?.trim()); // 日付をDate型に変換
+  const sheetDate = formatDateToYYYYMMDD(fetchedDColumnData[index]?.trim()); // スプレッドシートD列
   const sheetItem = fetchedKColumnData[index]?.trim()?.toLowerCase(); // 出品名を小文字に統一
 
   console.log(`🔍 ${index + 1}行目 - スプレッドシート日付: ${sheetDate}, 商品名: ${sheetItem}`);
@@ -303,13 +320,16 @@ const matchedRows = fetchedDColumnData.map((dValue, index) => {
 
 console.log("📝 出品名が一致するデータ:", matchedRows);
 
+// ✅ csvDateObj をここで定義（YYYY/MM/DD 形式に統一）
+const csvDateObj = new Date(formatDateToYYYYMMDD(csvDate));
+
 // ✅ 出品名が一致する行の中で、日付が最も近いものを選択
 let bestMatch = null;
 let minDiff = Infinity;
 
 matchedRows.forEach((row) => {
-  const csvDateObj = new Date(csvDate.split(" ")[0]);
-  const diff = Math.abs(row.date - csvDateObj);
+  const csvDate = formatDateToYYYYMMDD(row[2]?.trim() || "");  // CSVのC列（日付）
+  const diff = Math.abs(new Date(row.date) - new Date(csvDateObj));
 
   console.log(`📆 日付比較: CSV日付(${csvDateObj}) vs シート日付(${row.date}) → 差分: ${diff}`);
 
@@ -321,10 +341,10 @@ matchedRows.forEach((row) => {
 
 console.log("✅ 最も近いマッチング結果:", bestMatch);
 
-
 // ✅ 最も近い日付が見つかった場合のみ一致と判定
 const isDateMatch = !!bestMatch;
 const isItemMatch = !!bestMatch;
+
 
 
 
