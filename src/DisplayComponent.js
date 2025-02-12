@@ -140,8 +140,8 @@ const fetchFilteredNColumnData = async () => {
 };
 
 
-const fetchFilteredBLColumnData = async () => {
-    return await fetchFilteredColumnData(63); // BL列（メルカリ送料）
+const fetchFilteredBNColumnData = async () => {
+    return await fetchFilteredColumnData(65); // BL列（メルカリ送料）
 };
 
 const fetchFilteredColumnData = async (columnIndex) => {
@@ -250,14 +250,14 @@ const handleMatchCheck = async () => {
   const fetchedDColumnData = await fetchFilteredDColumnData(); // スプレッドシートD列（日付）
   const fetchedKColumnData = await fetchFilteredKColumnData(); // スプレッドシートK列（出品名）
   const fetchedNColumnData = await fetchFilteredNColumnData(); // スプレッドシートN列（売上）
-  const fetchedBLColumnData = await fetchFilteredBLColumnData(); // スプレッドシートBL列（送料）
+  const fetchedBNColumnData = await fetchFilteredBNColumnData(); // スプレッドシートBN列（送料）
 
   if (!csvData.length) {
     setStatusMessage('CSVデータがありません。CSVをアップロードしてください。');
     return;
   }
 
-  if (!fetchedDColumnData.length || !fetchedKColumnData.length || !fetchedNColumnData.length || !fetchedBLColumnData.length ) {
+  if (!fetchedDColumnData.length || !fetchedKColumnData.length || !fetchedNColumnData.length || !fetchedBNColumnData.length) {
     setStatusMessage('スプレッドシートデータの取得に失敗しました。');
     return;
   }
@@ -265,118 +265,70 @@ const handleMatchCheck = async () => {
   console.log("取得したフィルタリング後の D列（日付）データ:", fetchedDColumnData);
   console.log("取得したフィルタリング後の K列（出品名）データ:", fetchedKColumnData);
   console.log("取得したフィルタリング後の N列（売上）データ:", fetchedNColumnData);
-  console.log("取得したフィルタリング後の BL列（送料）データ:", fetchedBLColumnData);
+  console.log("取得したフィルタリング後の BL列（送料）データ:", fetchedBNColumnData);
 
   
-
-
   let matchCount = 0;
   let ngCount = 0;
   let results = [];
 
-// ✅ CSVデータのフィルタリング処理
-const filteredCsvData = csvData.filter((row) => {
-  const csvDate = formatCsvDate(row[2]?.trim() || ""); // CSVのB列（日付）
-  const csvShipping = parseFloat(row[10]?.trim()) || 0; // J列（配送料）
+  // ✅ CSVデータもスプレッドシートのフィルターと同じ条件で絞り込み
+  const filteredCsvData = csvData.filter((row) => {
+    const csvDate = formatCsvDate(row[1]?.trim() || ""); // CSVのB列（日付）
+    const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
 
-  // ✅ フィルター適用
-  const dateMatch = selectedYear && selectedMonth
-    ? csvDate.startsWith(`${selectedYear}/${selectedMonth.padStart(2, '0')}`)
-    : selectedYear
-    ? csvDate.startsWith(selectedYear)
-    : selectedMonth
-    ? csvDate.includes(`/${selectedMonth.padStart(2, '0')}/`)
-    : true;
+    // ✅ フィルター適用
+    const dateMatch = selectedYear && selectedMonth
+      ? csvDate.startsWith(`${selectedYear}/${selectedMonth.padStart(2, '0')}`)
+      : selectedYear
+      ? csvDate.startsWith(selectedYear)
+      : selectedMonth
+      ? csvDate.includes(`/${selectedMonth.padStart(2, '0')}/`)
+      : true;
 
-  const shippingCostMatch = selectedShippingCostMin !== '' 
-    ? csvShipping >= parseFloat(selectedShippingCostMin)
-    : true &&
-    selectedShippingCostMax !== ''
-    ? csvShipping <= parseFloat(selectedShippingCostMax)
-    : true;
+    const shippingCostMatch = (selectedShippingCostMin !== '' ? csvShipping >= parseFloat(selectedShippingCostMin) : true) &&
+                              (selectedShippingCostMax !== '' ? csvShipping <= parseFloat(selectedShippingCostMax) : true);
 
-  return dateMatch && shippingCostMatch;
-});
-
+    return dateMatch && shippingCostMatch;
+  });
 
   console.log("フィルタリング後のCSVデータ:", filteredCsvData);
 
   // ✅ 一致チェック処理
   filteredCsvData.forEach((row, index) => {
-    const csvDate = formatCsvDate(row[2]?.trim() || "");  // CSVのB列（日付）
-    const csvItemName = row[6]?.trim() || "";  // CSVのF列（出品名）
-    const csvPrice = parseFloat(row[8]?.trim()) || 0; // H列（商品代金）
-    const csvShipping = parseFloat(row[10]?.trim()) || 0; // J列（配送料）
+    const csvDate = formatCsvDate(row[1]?.trim() || "");  // CSVのB列（日付）
+    const csvItemName = row[5]?.trim() || "";  // CSVのF列（出品名）
+    const csvPrice = parseFloat(row[7]?.trim()) || 0; // H列（商品代金）
+    const csvShipping = parseFloat(row[9]?.trim()) || 0; // J列（配送料）
 
-// ✅ 日付 + 出品名の比較（セットで処理）
-const matchedRows = fetchedDColumnData.map((dValue, index) => {
-  const sheetDate = formatDateToYYYYMMDD(fetchedDColumnData[index]?.trim()); // スプレッドシートD列
-  const sheetItem = fetchedKColumnData[index]?.trim()?.toLowerCase(); // 出品名を小文字に統一
+    // ✅ 日付＋出品名の一致確認
+    const isDateMatch = fetchedDColumnData.some((dValue) => dValue?.trim() === csvDate.split(" ")[0]);
+    const isItemMatch = fetchedKColumnData.some((kValue) => kValue?.trim() === csvItemName);
+    const isDateItemMatch = isDateMatch && isItemMatch;  // ✅ 日付＋出品名が一致するか
 
-  console.log(`🔍 ${index + 1}行目 - スプレッドシート日付: ${sheetDate}, 商品名: ${sheetItem}`);
+    let isPriceMatch = false;
+    let isShippingMatch = false;
 
-  return { index, date: sheetDate, item: sheetItem };
-}).filter((row) => row.item === csvItemName.trim().toLowerCase()); // ✅ 出品名が一致する行を抽出
+    if (isDateItemMatch) {
+      // ✅ 売上の一致判定
+      isPriceMatch = fetchedNColumnData.some((nValue) => {
+        const sheetPrice = parseFloat(nValue.replace(/[￥,]/g, '')).toFixed(0);
+        return sheetPrice === csvPrice.toFixed(0);
+      });
 
-console.log("📝 出品名が一致するデータ:", matchedRows);
+      // ✅ 送料の一致判定
+      isShippingMatch = fetchedBNColumnData.some((bnValue) => {
+        let sheetShipping = bnValue === undefined || bnValue === "" || isNaN(parseFloat(bnValue.replace(/[￥,]/g, ''))) 
+          ? 0  // 空白・未定義・NaN の場合は 0
+          : parseFloat(bnValue.replace(/[￥,]/g, '')); 
 
-// ✅ csvDateObj をここで定義（YYYY/MM/DD 形式に統一）
-const csvDateObj = new Date(formatDateToYYYYMMDD(csvDate));
+        let csvShippingFormatted = isNaN(parseFloat(csvShipping)) ? 0 : parseFloat(csvShipping);
+        return sheetShipping === csvShippingFormatted;
+      });
+    }
 
-// ✅ 出品名が一致する行の中で、日付が最も近いものを選択
-let bestMatch = null;
-let minDiff = Infinity;
-
-matchedRows.forEach((row) => {
-  const csvDate = formatDateToYYYYMMDD(row[2]?.trim() || "");  // CSVのC列（日付）
-  const diff = Math.abs(new Date(row.date) - new Date(csvDateObj));
-
-  console.log(`📆 日付比較: CSV日付(${csvDateObj}) vs シート日付(${row.date}) → 差分: ${diff}`);
-
-  if (diff <= 86400000 && diff < minDiff) { // ✅ ±1日以内で、最も近いものを探す
-    bestMatch = row;
-    minDiff = diff;
-  }
-});
-
-console.log("✅ 最も近いマッチング結果:", bestMatch);
-
-// ✅ 最も近い日付が見つかった場合のみ一致と判定
-const isDateMatch = !!bestMatch;
-const isItemMatch = !!bestMatch;
-
-
-
-
-    const isPriceMatch = fetchedNColumnData.some((nValue) => {
-     let sheetPrice = nValue === undefined || nValue === "" || isNaN(parseFloat(nValue.replace(/[￥,]/g, '')))
-      ? 0 
-      : parseFloat(nValue.replace(/[￥,]/g, ''));
-
-      return sheetPrice.toFixed(0) === csvPrice.toFixed(0);
-    });
-
-
-
-    
-    const isShippingMatch = fetchedBLColumnData.some((blValue) => {
-     let sheetShipping = blValue === undefined || blValue === "" || isNaN(parseFloat(blValue.replace(/[￥,]/g, ''))) 
-      ? 0  
-      : parseFloat(blValue.replace(/[￥,]/g, ''));
-
-      let csvShippingFormatted = isNaN(parseFloat(csvShipping)) ? 0 : parseFloat(csvShipping);
-
-      console.log(
-      `🚀 送料比較 - スプレッドシート: ${sheetShipping}, CSV: ${csvShippingFormatted}, ` +
-      `一致: ${sheetShipping === csvShippingFormatted}`
-      );
-
-      return sheetShipping.toFixed(0) === csvShippingFormatted.toFixed(0);
-    });  
-    
-
-    // ✅ すべての条件が一致したら「●」、不一致の項目を赤色に
-    const isAllMatch = isDateMatch && isItemMatch && isPriceMatch && isShippingMatch;
+    // ✅ 一致判定の結果を元にセルの色を設定
+    let isAllMatch = isDateItemMatch && isPriceMatch && isShippingMatch;
 
     results.push({
       csvDate: { value: csvDate || "---", matched: isDateMatch },  

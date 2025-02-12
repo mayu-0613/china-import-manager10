@@ -3,6 +3,7 @@ import AuthComponent from './AuthComponent';
 import SearchComponent from './SearchComponent';
 import InputComponent from './InputComponent';
 import DisplayComponent from './DisplayComponent';
+import ShippingRequestComponent from './ShippingRequestComponent'; // 発送依頼タブを追加
 
 const App = () => {
   const [isSignedIn, setIsSignedIn] = useState(false); // サインイン状態を管理
@@ -26,23 +27,17 @@ const App = () => {
         <div>
           {/* タブの切り替えボタン */}
           <div className="tabs">
-            <button
-              className={activeTab === 'search' ? 'active' : ''}
-              onClick={() => setActiveTab('search')}
-            >
+            <button className={activeTab === 'search' ? 'active' : ''} onClick={() => setActiveTab('search')}>
               検索
             </button>
-            <button
-              className={activeTab === 'input' ? 'active' : ''}
-              onClick={() => setActiveTab('input')}
-            >
+            <button className={activeTab === 'input' ? 'active' : ''} onClick={() => setActiveTab('input')}>
               入力
             </button>
-            <button
-              className={activeTab === 'display' ? 'active' : ''}
-              onClick={() => setActiveTab('display')}
-            >
+            <button className={activeTab === 'display' ? 'active' : ''} onClick={() => setActiveTab('display')}>
               表示
+            </button>
+            <button className={activeTab === 'shipping' ? 'active' : ''} onClick={() => setActiveTab('shipping')}>
+              発送依頼
             </button>
           </div>
 
@@ -50,6 +45,7 @@ const App = () => {
           {activeTab === 'search' && <SearchComponent accessToken={accessToken} />}
           {activeTab === 'input' && <InputComponent accessToken={accessToken} />}
           {activeTab === 'display' && <DisplayComponent accessToken={accessToken} />}
+          {activeTab === 'shipping' && <ShippingRequestComponent accessToken={accessToken} />}
         </div>
       )}
     </div>

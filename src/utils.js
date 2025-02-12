@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 担当者オプション
-export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原", "林","谷口","植津","平澤","南條","児島","重松","下島","土井"];
+export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原", "林","谷口","植津","平澤","南條","児島","重松","下島","土井","小椋"];
 
 // 販売チャネルオプション
 export const AA_OPTIONS = ["", "Shops", "yahoo", "ラクマ", "ヤフオク", "Amazon","Qoo10"];
@@ -162,5 +162,26 @@ export const updateAddressFromPostalCode = async (postalCode, setAdditionalInput
       console.error('住所取得エラー:', error);
       throw new Error('住所データの取得に失敗しました。');
     }
+  }
+};
+
+
+export const markAsShipped = async (selectedSheet, sheetName, rowIndex, accessToken) => {
+  const spreadsheetId = getSheetIds()[selectedSheet];
+  const column = 'CE'; // CE列を指定
+  const value = '発送済み';
+
+  try {
+    const range = `${sheetName}!${column}${rowIndex}`;
+    await axios.put(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`,
+      { values: [[value]] },
+      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+    );
+
+    return true;
+  } catch (error) {
+    console.error(`発送済み更新エラー (${rowIndex}):`, error);
+    throw new Error('発送済みの更新に失敗しました。');
   }
 };
