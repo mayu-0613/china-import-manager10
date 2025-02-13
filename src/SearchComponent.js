@@ -21,7 +21,7 @@ const SearchComponent = ({ accessToken }) => {
     setIsProcessing(true);
     setStatusMessage('検索中です...');
     const spreadsheetId = sheetIds[selectedSheet];
-    const mainRange = '売上管理表!A2:AQ1000';
+    const mainRange = '売上管理表!A2:AS1000';
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${mainRange}?key=${apiKey}`;
 
     try {
@@ -33,10 +33,6 @@ const SearchComponent = ({ accessToken }) => {
       const filteredRows = await Promise.all(
         rows
           .filter((row) => row.some((cell) => cell.includes(searchTerm)))
-          .map(async (row) => {
-            const isFoundInMercariSheet = await searchInMercariSheet(row[37], spreadsheetId);
-            return [...row, isFoundInMercariSheet ? '〇' : '×'];
-          })
       );
 
       setResults(filteredRows);
@@ -50,19 +46,6 @@ const SearchComponent = ({ accessToken }) => {
     }
   };
 
-  const searchInMercariSheet = async (value, spreadsheetId) => {
-    const mercariRange = 'メルカリ発送済み!A2:AQ1000';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(mercariRange)}?key=${apiKey}`;
-
-    try {
-      const response = await axios.get(url);
-      const rows = response.data.values || [];
-      return rows.some((row) => row.includes(value));
-    } catch (error) {
-      console.error('Error searching in Mercari sheet:', error);
-      return false;
-    }
-  };
 
   return (
     <div className="container">
@@ -104,7 +87,8 @@ const SearchComponent = ({ accessToken }) => {
         <table>
           <thead>
             <tr>
-              <th>メルカリ確認</th>
+              <th>確認</th>
+              <th>発送</th>
               <th>発送日</th>
               <th>追跡番号</th>
               <th>配送会社</th>
@@ -127,7 +111,12 @@ const SearchComponent = ({ accessToken }) => {
           <tbody>
             {results.map((row, index) => (
               <tr key={index}>
-                <td>{row[43]}</td>
+      <td>
+        <input type="checkbox" checked={row[43] === 'TRUE'} readOnly />
+      </td>
+      <td>
+        <input type="checkbox" checked={row[44] === 'TRUE'} readOnly />
+      </td>
                 <td>{row[38]}</td>
                 <td>{row[40]}</td>
                 <td>{row[41]}</td>
