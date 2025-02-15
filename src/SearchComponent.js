@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
 const SearchComponent = ({ accessToken }) => {
@@ -7,6 +7,9 @@ const SearchComponent = ({ accessToken }) => {
   const [selectedSheet, setSelectedSheet] = useState('130未来物販');
   const [statusMessage, setStatusMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // キャッシュ用の useRef
+  const dataCache = useRef({});
 
   const sheetIds = {
     '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130,
@@ -17,9 +20,11 @@ const SearchComponent = ({ accessToken }) => {
 
   const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
 
-  const handleSearch = async () => {
+  // API からデータを取得し、キャッシュする
+  const fetchData = async () => {
     setIsProcessing(true);
-    setStatusMessage('検索中です...');
+    setStatusMessage('データを取得中...');
+
     const spreadsheetId = sheetIds[selectedSheet];
     const mainRange = '売上管理表!A2:AS1000';
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${mainRange}?key=${apiKey}`;
@@ -28,24 +33,42 @@ const SearchComponent = ({ accessToken }) => {
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      const rows = response.data.values;
-
-      const filteredRows = await Promise.all(
-        rows
-          .filter((row) => row.some((cell) => cell.includes(searchTerm)))
-      );
-
-      setResults(filteredRows);
-      setStatusMessage(filteredRows.length > 0 ? '検索結果が見つかりました！' : '一致する結果が見つかりませんでした。');
+      dataCache.current[selectedSheet] = response.data.values || []; // キャッシュに保存
+      setStatusMessage('データ取得完了！');
     } catch (error) {
       console.error('Error fetching data:', error);
-      setStatusMessage('検索に失敗しました。');
+      setStatusMessage('データ取得に失敗しました。');
     } finally {
       setIsProcessing(false);
       setTimeout(() => setStatusMessage(''), 3000);
     }
   };
 
+  // シート変更時にデータを取得
+  useEffect(() => {
+    if (!dataCache.current[selectedSheet]) {
+      fetchData(); // キャッシュにない場合のみ API を呼び出す
+    }
+  }, [selectedSheet]);
+
+  // 検索処理
+  const handleSearch = () => {
+    if (!dataCache.current[selectedSheet]) {
+      setStatusMessage('データ取得中です。しばらくお待ちください。');
+      return;
+    }
+
+    setIsProcessing(true);
+    setStatusMessage('検索中です...');
+
+    const filteredRows = dataCache.current[selectedSheet].filter((row) =>
+      row.some((cell) => cell.includes(searchTerm))
+    );
+
+    setResults(filteredRows);
+    setStatusMessage(filteredRows.length > 0 ? '検索結果が見つかりました！' : '一致する結果が見つかりませんでした。');
+    setIsProcessing(false);
+  };
 
   return (
     <div className="container">
@@ -105,18 +128,17 @@ const SearchComponent = ({ accessToken }) => {
               <th>現在の在庫数</th>
               <th>発送代行ID</th>
               <th>担当者</th>
-
             </tr>
           </thead>
           <tbody>
             {results.map((row, index) => (
               <tr key={index}>
-      <td>
-        <input type="checkbox" checked={row[43] === 'TRUE'} readOnly />
-      </td>
-      <td>
-        <input type="checkbox" checked={row[44] === 'TRUE'} readOnly />
-      </td>
+                <td>
+                  <input type="checkbox" checked={row[43] === 'TRUE'} readOnly />
+                </td>
+                <td>
+                  <input type="checkbox" checked={row[44] === 'TRUE'} readOnly />
+                </td>
                 <td>{row[38]}</td>
                 <td>{row[40]}</td>
                 <td>{row[41]}</td>
@@ -133,7 +155,6 @@ const SearchComponent = ({ accessToken }) => {
                 <td>{row[36]}</td>
                 <td>{row[37]}</td>
                 <td>{row[42]}</td>
-
               </tr>
             ))}
           </tbody>
@@ -144,4 +165,3 @@ const SearchComponent = ({ accessToken }) => {
 };
 
 export default SearchComponent;
-
