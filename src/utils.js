@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 担当者オプション
-export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原", "林","谷口","植津","平澤","南條","児島","重松","下島","土井","小椋","幸野"];
+export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原", "林","谷口","植津","平澤","南條","児島","重松","下島","土井","小椋","幸野","西山"];
 
 // 販売チャネルオプション
 export const AA_OPTIONS = ["", "Shops", "yahoo", "ラクマ", "ヤフオク", "Amazon","Qoo10"];
@@ -21,7 +21,6 @@ export const initializeInputs = () => ({
 });
 
 export const getSheetIds = () => ({
-  '全て': null, // 全シートを対象にする場合は `null`（後で処理）
   '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130,
   '20なちさん': process.env.REACT_APP_SPREADSHEET_ID_20,
   '76岩木さん': process.env.REACT_APP_SPREADSHEET_ID_76,
