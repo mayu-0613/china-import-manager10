@@ -307,7 +307,7 @@ useEffect(() => {
 
 
 
-      <h3 style={{ backgroundColor: "lightgreen", padding: "10px", color: "black" }}>
+      <h3 style={{ backgroundColor: "yellow", padding: "10px", color: "black" }}>
   ✅ 一致データ
 </h3>
 <table border="1">
