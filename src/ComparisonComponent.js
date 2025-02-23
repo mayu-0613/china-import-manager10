@@ -6,8 +6,10 @@ import { AQ_OPTIONS } from "./utils"; // ✅ 担当者リストをインポー�
 
 
 
+
 const sheetName = "売上管理表";
 const columns = ["D", "K", "N", "BN", "AQ"]; // AQ列（担当者）を含める
+
 
 
 const ComparisonComponent = ({ accessToken }) => {
@@ -23,6 +25,9 @@ const ComparisonComponent = ({ accessToken }) => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedOwner, setSelectedOwner] = useState("");
   const firstRenderRef = useRef(true);
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
   
 
   useEffect(() => {
@@ -41,6 +46,8 @@ const ComparisonComponent = ({ accessToken }) => {
     
     const fetchData = async () => {
       setIsLoading(true);
+      setLoadingMessage("📊 スプレッドシートのデータを取得中...");
+      setErrorMessage("");
       const sheetIds = getSheetIds();
       let allData = [];
 
@@ -123,36 +130,48 @@ const ComparisonComponent = ({ accessToken }) => {
   };
 
   // CSVファイルのアップロード処理
-  const handleCsvUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  // CSVファイルのアップロード処理
+const handleCsvUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const text = e.target.result;
-        const rows = text.split("\n").map(row => row.split(","));
-        let formattedCsvData = rows.slice(1).map(row => ({
-            orderDate: row[0]?.trim().split(" ")[0], // ✅ `YYYY/MM/DD h:mm` → `YYYY/MM/DD`
-            productName: row[1]?.trim(),
-            price: Number(row[2]?.trim() || 0),
-            shippingFee: Number(row[4]?.trim() || 0),
-        }));
+  setIsLoading(true);
+  setLoadingMessage("📂 CSVファイルを解析中...");
+  setErrorMessage("");
 
-        // ✅ CSVデータから最初のデータを見て、`selectedYear` / `selectedMonth` を自動設定
-        if (formattedCsvData.length > 0) {
-            const firstDateParts = formattedCsvData[0].orderDate.split("/");
-            if (!selectedYear) setSelectedYear(firstDateParts[0]); // 年が未選択なら自動設定
-            if (!selectedMonth) setSelectedMonth(firstDateParts[1]); // 月が未選択なら自動設定
-        }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+      const text = e.target.result;
+      const rows = text.split("\n").map(row => row.split(","));
+      let formattedCsvData = rows.slice(1).map(row => ({
+          orderDate: row[0]?.trim().split(" ")[0], // ✅ `YYYY/MM/DD h:mm` → `YYYY/MM/DD`
+          productName: row[1]?.trim(),
+          price: Number(row[2]?.trim() || 0),
+          shippingFee: Number(row[4]?.trim() || 0),
+      }));
 
-        console.log("📂 CSVデータ取得:", formattedCsvData);
-        setCsvData(formattedCsvData); // ✅ `csvData` を更新
-        setFilteredCsvData(formattedCsvData); // ✅ `filteredCsvData` に即適用
+      // ✅ CSVデータから最初のデータを見て、`selectedYear` / `selectedMonth` を自動設定
+      if (formattedCsvData.length > 0) {
+          const firstDateParts = formattedCsvData[0].orderDate.split("/");
+          if (!selectedYear) setSelectedYear(firstDateParts[0]); // 年が未選択なら自動設定
+          if (!selectedMonth) setSelectedMonth(firstDateParts[1]); // 月が未選択なら自動設定
+      }
 
-        compareData(formattedCsvData, filteredData); // ✅ CSVアップロード後に比較実行
-    };
-    reader.readAsText(file);
+      console.log("📂 CSVデータ取得:", formattedCsvData);
+      setCsvData(formattedCsvData); // ✅ `csvData` を更新
+      setFilteredCsvData(formattedCsvData); // ✅ `filteredCsvData` に即適用
+  };
+  reader.readAsText(file);
 };
+
+// ✅ `selectedYear` または `selectedMonth` が変更された後に `compareData` を実行する
+useEffect(() => {
+  if (csvData.length > 0 && selectedYear && selectedMonth) {
+      console.log("🔍 `selectedYear` / `selectedMonth` の更新後に比較を実行");
+      compareData(filteredCsvData, filteredData);
+  }
+}, [csvData, selectedYear, selectedMonth]);
+
 
 
   const [filteredCsvData, setFilteredCsvData] = useState([]);
@@ -199,8 +218,12 @@ useEffect(() => {
 
 
   // データの比較処理
- const compareData = () => {
+  const compareData = () => {
     if (filteredData.length === 0 && filteredCsvData.length === 0) return; // ✅ データがない場合は比較しない
+
+    setIsLoading(true);
+    setLoadingMessage("🔍 データを比較中...");
+    setErrorMessage("");
 
     let matched = [];
     let unmatched = [];
@@ -208,62 +231,81 @@ useEffect(() => {
     console.log("🔍 最新のフィルター適用後のスプレッドシートデータ:", filteredData);
     console.log("🔍 最新のフィルター適用後の CSV データ:", filteredCsvData);
 
-    // ✅ スプレッドシートのデータをCSVと比較
-    filteredData.forEach(sheetRow => {
-        const match = filteredCsvData.find(csvRow => {
-            const sheetDate = new Date(sheetRow.orderDate);
-            const csvDate = new Date(csvRow.orderDate);
-            const dateDiff = Math.abs((sheetDate - csvDate) / (1000 * 60 * 60 * 24));
+    try {
+        // ✅ スプレッドシートのデータをCSVと比較
+        filteredData.forEach(sheetRow => {
+            const match = filteredCsvData.find(csvRow => {
+                const sheetDate = new Date(sheetRow.orderDate);
+                const csvDate = new Date(csvRow.orderDate);
+                const dateDiff = Math.abs((sheetDate - csvDate) / (1000 * 60 * 60 * 24));
 
-            return (
-                dateDiff <= 1 && // ✅ 日付が±1日のズレならOK
-                sheetRow.productName === csvRow.productName &&
-                sheetRow.price === csvRow.price &&
-                sheetRow.shippingFee === csvRow.shippingFee
-            );
+                return (
+                    dateDiff <= 1 && // ✅ 日付が±1日のズレならOK
+                    sheetRow.productName === csvRow.productName &&
+                    sheetRow.price === csvRow.price &&
+                    sheetRow.shippingFee === csvRow.shippingFee
+                );
+            });
+
+            if (match) {
+                matched.push({ sheet: sheetRow, csv: match });
+            } else {
+                unmatched.push({ sheet: sheetRow, csv: null });
+            }
         });
 
-        if (match) {
-            matched.push({ sheet: sheetRow, csv: match });
-        } else {
-            unmatched.push({ sheet: sheetRow, csv: null });
-        }
-    });
+        // ✅ CSVのデータをスプレッドシートと比較
+        filteredCsvData.forEach(csvRow => {
+            const existsInSheet = filteredData.some(sheetRow => {
+                const sheetDate = new Date(sheetRow.orderDate);
+                const csvDate = new Date(csvRow.orderDate);
+                const dateDiff = Math.abs((sheetDate - csvDate) / (1000 * 60 * 60 * 24));
 
-    // ✅ CSVのデータをスプレッドシートと比較
-    filteredCsvData.forEach(csvRow => {
-        const existsInSheet = filteredData.some(sheetRow => {
-            const sheetDate = new Date(sheetRow.orderDate);
-            const csvDate = new Date(csvRow.orderDate);
-            const dateDiff = Math.abs((sheetDate - csvDate) / (1000 * 60 * 60 * 24));
+                return (
+                    dateDiff <= 1 &&
+                    sheetRow.productName === csvRow.productName &&
+                    sheetRow.price === csvRow.price &&
+                    sheetRow.shippingFee === csvRow.shippingFee
+                );
+            });
 
-            return (
-                dateDiff <= 1 &&
-                sheetRow.productName === csvRow.productName &&
-                sheetRow.price === csvRow.price &&
-                sheetRow.shippingFee === csvRow.shippingFee
-            );
+            if (!existsInSheet) {
+                console.log("🚨 スプレッドシートに存在しないCSVデータ:", csvRow);
+                unmatched.push({ sheet: null, csv: csvRow });
+            }
         });
 
-        if (!existsInSheet) {
-            console.log("🚨 スプレッドシートに存在しないCSVデータ:", csvRow);
-            unmatched.push({ sheet: null, csv: csvRow });
-        }
-    });
+        setMatchedData(matched);
+        setUnmatchedData(unmatched);
 
-    setMatchedData(matched);
-    setUnmatchedData(unmatched);
+        // ✅ 比較完了時にメッセージを設定
+        setLoadingMessage("✅ 比較完了");
+    } catch (error) {
+        setErrorMessage("❌ データ比較中にエラーが発生しました");
+        console.error("❌ エラー詳細:", error); // エラー内容をコンソールに表示
+    } finally {
+        setIsLoading(false);
 
-    console.log("✅ 一致データ:", matched);
-    console.log("❌ 不一致データ:", unmatched);
+        // ✅ ログ出力
+        console.log("✅ 一致データ:", matched);
+        console.log("❌ 不一致データ:", unmatched);
+
+        // ✅ 2秒後にメッセージをクリア
+        setTimeout(() => setLoadingMessage(""), 2000);
+    }
 };
-
 
   
 
   return (
     <div>
       <h2>CSV比較ツール</h2>
+
+      {/* 🔹 ローディングメッセージの表示（青色） */}
+      {loadingMessage && <p style={{ color: "blue", fontWeight: "bold" }}>{loadingMessage}</p>}
+
+      {/* 🔹 エラーメッセージの表示（赤色） */}
+      {errorMessage && <p style={{ color: "red", fontWeight: "bold" }}>{errorMessage}</p>}
 
       <input type="file" accept=".csv" onChange={handleCsvUpload} />
 
