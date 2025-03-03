@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import AuthComponent from './AuthComponent';
-import SearchComponent from './SearchComponent';
-import InputComponent from './InputComponent';
-import ComparisonComponent from './ComparisonComponent'; // ✅ 表示タブを比較タブに変更
-import ShippingRequestComponent from './ShippingRequestComponent'; 
+import AuthComponent from "./components/AuthComponent";
+import SearchComponent from "./components/SearchComponent";
+import InputComponent from "./components/InputComponent";
+import ComparisonComponent from "./components/ComparisonComponent";
+import ShippingRequestComponent from "./components/ShippingRequestComponent";
+import React, { useState } from "react"; // ✅ useState を React から読み込む
+
 
 const App = () => {
   const [isSignedIn, setIsSignedIn] = useState(false);

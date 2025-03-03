@@ -14,7 +14,7 @@ import {
   appendSheetData,
   fetchRowData,
   updateBatchData,
-} from './utils';
+} from '../utils/utils';
 
 const InputComponent = ({ accessToken }) => {
   const [selectedSheet, setSelectedSheet] = useState(null); 
@@ -55,7 +55,7 @@ const InputComponent = ({ accessToken }) => {
       const akData = await fetchSheetData(selectedSheet, '売上管理表', 'AK:AK');
       const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D:AQ');
 
-      const processedEntries = rows.slice(-5).reverse().map((row, index) => ({
+      const processedEntries = rows.slice().reverse().map((row, index) => ({
         index: rows.length - index,
         kColumn: row[0] || '',
         sColumn: row[8] || '',

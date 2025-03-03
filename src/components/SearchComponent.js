@@ -1,96 +1,84 @@
-import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useRef, useEffect } from "react";
+import axios from "axios";
+import "../styles/index.css";
+import AlertMessage from "../components/AlertMessage"; // ✅ AlertMessage をインポート
 
 const SearchComponent = ({ accessToken }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
-  const [selectedSheet, setSelectedSheet] = useState('130未来物販');
-  const [statusMessage, setStatusMessage] = useState('');
+  const [selectedSheet, setSelectedSheet] = useState("130未来物販");
+  const [statusMessage, setStatusMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isWarning, setIsWarning] = useState(false); // ✅ 追加
 
-  // キャッシュ用の useRef
   const dataCache = useRef({});
 
   const sheetIds = {
-    '130未来物販': process.env.REACT_APP_SPREADSHEET_ID_130,
-    '20なちさん': process.env.REACT_APP_SPREADSHEET_ID_20,
-    '76岩木さん': process.env.REACT_APP_SPREADSHEET_ID_76,
-    '190黒田さん': process.env.REACT_APP_SPREADSHEET_ID_190,
+    "130未来物販": process.env.REACT_APP_SPREADSHEET_ID_130,
+    "20なちさん": process.env.REACT_APP_SPREADSHEET_ID_20,
+    "76岩木さん": process.env.REACT_APP_SPREADSHEET_ID_76,
+    "190黒田さん": process.env.REACT_APP_SPREADSHEET_ID_190,
   };
 
   const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
 
+  // ✅ 共通の処理終了関数
+  const finalizeProcess = (message = "", warning = false) => {
+    setStatusMessage(message);
+    setIsProcessing(false);
+    setIsWarning(warning);
+  };
+
   // API からデータを取得し、キャッシュする
   const fetchData = async () => {
     setIsProcessing(true);
-    setStatusMessage('データを取得中...');
+    setStatusMessage("データを取得中...");
 
     const spreadsheetId = sheetIds[selectedSheet];
-    const mainRange = '売上管理表!A2:AS1000';
+    const mainRange = "売上管理表!A2:AS1000";
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${mainRange}?key=${apiKey}`;
 
     try {
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      dataCache.current[selectedSheet] = response.data.values || []; // キャッシュに保存
-      setStatusMessage('データ取得完了！');
+      dataCache.current[selectedSheet] = response.data.values || [];
+      finalizeProcess("検索キーワードを入力してください",true);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      setStatusMessage('データ取得に失敗しました。');
-    } finally {
-      setIsProcessing(false);
-      setTimeout(() => setStatusMessage(''), 3000);
+      console.error("Error fetching data:", error);
+      finalizeProcess("データ取得に失敗しました。", true);
     }
   };
 
-  // シート変更時にデータを取得
   useEffect(() => {
     if (!dataCache.current[selectedSheet]) {
-      fetchData(); // キャッシュにない場合のみ API を呼び出す
+      fetchData();
     }
   }, [selectedSheet]);
 
-  // 検索処理
+  // ✅ 検索処理
   const handleSearch = () => {
-    if (!dataCache.current[selectedSheet]) {
-      setStatusMessage('データ取得中です。しばらくお待ちください。');
-      return;
-    }
+
 
     setIsProcessing(true);
-    setStatusMessage('検索中です...');
+    setIsWarning(false);
+    setStatusMessage("検索中です...");
 
     const filteredRows = dataCache.current[selectedSheet].filter((row) =>
       row.some((cell) => cell.includes(searchTerm))
     );
 
+    finalizeProcess(filteredRows.length > 0 ? "検索結果が見つかりました！" : "一致する結果が見つかりませんでした。");
     setResults(filteredRows);
-    setStatusMessage(filteredRows.length > 0 ? '検索結果が見つかりました！' : '一致する結果が見つかりませんでした。');
-    setIsProcessing(false);
   };
 
   return (
     <div className="container">
-      {statusMessage && (
-        <div style={{
-          backgroundColor: '#f0f8ff',
-          color: '#333',
-          padding: '10px',
-          marginBottom: '10px',
-          border: '1px solid #007BFF',
-          borderRadius: '5px',
-          textAlign: 'center'
-        }}>
-          {statusMessage}
-        </div>
-      )}
+      {/* ✅ AlertMessage を適用 */}
+      {statusMessage && <AlertMessage message={statusMessage} isProcessing={isProcessing} isWarning={isWarning} />}
 
       <h1>売上管理システム</h1>
-      <select
-        value={selectedSheet}
-        onChange={(e) => setSelectedSheet(e.target.value)}
-      >
+      <select value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)}>
         {Object.keys(sheetIds).map((sheetName) => (
           <option key={sheetName} value={sheetName}>
             {sheetName}
@@ -98,12 +86,7 @@ const SearchComponent = ({ accessToken }) => {
         ))}
       </select>
 
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="検索キーワードを入力"
-      />
+      <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="検索キーワードを入力" />
       <button onClick={handleSearch} disabled={isProcessing}>検索</button>
 
       {results.length > 0 && (
@@ -133,12 +116,8 @@ const SearchComponent = ({ accessToken }) => {
           <tbody>
             {results.map((row, index) => (
               <tr key={index}>
-                <td>
-                  <input type="checkbox" checked={row[43] === 'TRUE'} readOnly />
-                </td>
-                <td>
-                  <input type="checkbox" checked={row[44] === 'TRUE'} readOnly />
-                </td>
+                <td><input type="checkbox" checked={row[43] === "TRUE"} readOnly /></td>
+                <td><input type="checkbox" checked={row[44] === "TRUE"} readOnly /></td>
                 <td>{row[38]}</td>
                 <td>{row[40]}</td>
                 <td>{row[41]}</td>

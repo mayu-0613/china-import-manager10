@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
-import { AQ_OPTIONS, AA_OPTIONS } from './utils';
+import { AQ_OPTIONS, AA_OPTIONS } from '../utils/utils';
 
 
 const AdditionalInputs = ({

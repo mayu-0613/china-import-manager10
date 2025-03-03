@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { getSheetIds } from "./utils"; 
+import { getSheetIds } from "../utils/utils"; 
 
 const sheetName = "売上管理表";
 const columns = ["AR", "AS", "AQ", "AL", "CH", "AA", "D", "K", "S", "Y", "X", "W", "T", "U"];

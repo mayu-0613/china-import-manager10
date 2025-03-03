@@ -6,7 +6,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9f9f9;
+  background-color: #f8ffc4;
   padding: 20px;
 }
 
@@ -17,12 +17,12 @@ code {
 
 /* アプリ全体のスタイル */
 .App {
-  max-width: 800px;
+  max-width: 3000px;
   margin: 0 auto;
   background: #fff;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 10px 10px 4px rgba(255, 0, 0, 0.1);
 }
 
 h1 {
@@ -71,11 +71,6 @@ table {
   text-align: center; /* テーブル全体を中央揃え */
 }
 
-thead {
-  background: #007BFF;
-  color: white;
-}
-
 th, td {
   padding: 4px 8px; /* パディングを調整して行の高さを小さく */
   text-align: center; /* ヘッダーとデータを中央揃え */
@@ -91,10 +86,6 @@ td {
   color: #333;
   white-space: nowrap; /* 折り返しを防止 */
   border: 1px solid #ddd;
-}
-
-tbody tr:nth-child(even) {
-  background: #f2f2f2;
 }
 
 /* 列幅の調整 */
@@ -251,5 +242,30 @@ input:disabled, select:disabled, textarea:disabled {
 }
 
 
+/* ✅ AlertMessage の基本スタイル */
+.alert-message {
+  padding: 10px;
+  color: black;
+  font-weight: bold;
+  text-align: center;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+/* ✅ 処理中（isProcessing = true）の場合 → オレンジ */
+.alert-message.processing {
+  background-color: orange;
+}
+
+/* ✅ 処理完了（isProcessing = false）の場合 → ライトグリーン */
+.alert-message.success {
+  background-color: lightgreen;
+}
+
+/* ✅ ユーザーの操作が必要な場合 → 赤 */
+.alert-message.warning {
+  background-color: #ff4d4d; /* 赤色 */
+  color: white; /* 文字を白にして視認性を向上 */
+}
 
 

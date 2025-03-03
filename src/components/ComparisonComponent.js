@@ -1,7 +1,7 @@
 import React, { useEffect, useState,useRef } from "react";
 import axios from "axios";
-import { getSheetIds } from "./utils"; 
-import { AQ_OPTIONS } from "./utils"; // ✅ 担当者リストをインポート
+import { getSheetIds } from "../utils/utils"; 
+import { AQ_OPTIONS } from "../utils/utils"; // ✅ 担当者リストをインポート
 
 
 
