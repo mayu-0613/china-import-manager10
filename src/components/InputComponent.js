@@ -142,16 +142,18 @@ const handleInput = async () => {
     // AK列とAL列のデータを取得
     const [ak, al] = await fetchRowData(selectedSheet, '売上管理表', lastFilledRowIndex, 'AK:AL');
 
-    // **在庫がない (AKが-1) の場合 → 処理を中断**
+    // **在庫がない (AKが-1) の場合 → データ削除して処理を中断**
     if (ak === '-1') {
+      await deleteRow(selectedSheet, lastFilledRowIndex);
       setAlertMessage('在庫がありません', true); // 赤（エラー）
       setTimeout(() => setAlertMessage(null), 3000);
       setIsProcessing(false);
       return;
     }
 
-    // **出品名が空白 (ALが空) の場合 → 処理を中断**
+    // **出品名が空白 (ALが空) の場合 → データ削除して処理を中断**
     if (!al) {
+      await deleteRow(selectedSheet, lastFilledRowIndex);
       setAlertMessage('出品名に誤りがあります', true); // 赤（エラー）
       setTimeout(() => setAlertMessage(null), 3000);
       setIsProcessing(false);
@@ -178,6 +180,67 @@ const handleInput = async () => {
     setIsProcessing(false);
   }
 };
+
+const deleteRow = async (selectedSheet, rowIndex) => {
+  try {
+    const spreadsheetId = getSheetIds()[selectedSheet]; // スプレッドシートの ID 取得
+    const response = await axios.get(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    // 指定したシート名に対応する `sheetId` を取得
+    const sheet = response.data.sheets.find(s => s.properties.title === "売上管理表");
+    if (!sheet) {
+      console.error(`シート「売上管理表」が見つかりません`);
+      return;
+    }
+
+    const sheetId = sheet.properties.sheetId;
+
+    if (!sheetId) {
+      console.error(`シート ID が取得できませんでした`);
+      return;
+    }
+
+    if (rowIndex <= 1) {
+      console.error("削除対象の行番号が不正です", rowIndex);
+      return;
+    }
+
+    const request = {
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: sheetId,
+              dimension: 'ROWS',
+              startIndex: rowIndex - 1, // Google Sheets のインデックスは 0 から
+              endIndex: rowIndex,
+            },
+          },
+        },
+      ],
+    };
+
+    console.log(`シート ID: ${sheetId}, 削除対象行: ${rowIndex}`);
+
+    await axios.post(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+      request,
+      {
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      }
+    );
+
+    console.log(`行 ${rowIndex} を削除しました`);
+  } catch (error) {
+    console.error('行の削除に失敗しました:', error);
+  }
+};
+
 
 
 
