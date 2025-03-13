@@ -132,23 +132,56 @@ const handleIdentifierChange = async (identifierValue) => {
 
 
 const handleInput = async () => {
-
   try {
     setIsProcessing(true);
-    setAlertMessage('処理中です...');
+    setAlertMessage('処理中です...', false); // オレンジ（処理中）
+
+    // K列にデータを追加し、最後に入力された行のインデックスを取得
     const lastFilledRowIndex = await appendSheetData(selectedSheet, '売上管理表', 'K', inputValue, accessToken);
+
+    // AK列とAL列のデータを取得
+    const [ak, al] = await fetchRowData(selectedSheet, '売上管理表', lastFilledRowIndex, 'AK:AL');
+
+    // **在庫がない (AKが-1) の場合 → 処理を中断**
+    if (ak === '-1') {
+      setAlertMessage('在庫がありません', true); // 赤（エラー）
+      setTimeout(() => setAlertMessage(null), 3000);
+      setIsProcessing(false);
+      return;
+    }
+
+    // **出品名が空白 (ALが空) の場合 → 処理を中断**
+    if (!al) {
+      setAlertMessage('出品名に誤りがあります', true); // 赤（エラー）
+      setTimeout(() => setAlertMessage(null), 3000);
+      setIsProcessing(false);
+      return;
+    }
+
+    // **在庫切れ (AKが0) の場合 → アラートを表示しつつ処理を継続**
+    if (ak === '0') {
+      setAlertMessage('在庫切れになりました', false); // グリーン（継続）
+      setTimeout(() => setAlertMessage(null), 3000);
+    }
+
+    // 追加入力フィールドを表示
     setShowAdditionalInputs(true);
     setInputRowIndex(lastFilledRowIndex);
-    const [ak, al] = await fetchRowData(selectedSheet, '売上管理表', lastFilledRowIndex, 'AK:AL');
     setAkValue(ak);
     setAlValue(al);
     fetchRecentEntries();
-  } catch {
-    setAlertMessage('データの追加に失敗しました。');
+  } catch (error) {
+    setAlertMessage('データの追加に失敗しました。', true); // 赤（エラー）
+    setTimeout(() => setAlertMessage(null), 3000);
+    console.error(error);
   } finally {
     setIsProcessing(false);
   }
 };
+
+
+
+
 
 
   const handleBatchSubmit = async () => {

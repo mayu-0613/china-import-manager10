@@ -184,3 +184,85 @@ export const markAsShipped = async (selectedSheet, sheetName, rowIndex, accessTo
     throw new Error('発送済みの更新に失敗しました。');
   }
 };
+
+
+// 📌 スプレッドシートの全データを取得
+export const fetchAllEntries = async (selectedSheet) => {
+  try {
+    const rows = await fetchSheetData(selectedSheet, '売上管理表', 'K3:S');
+    const alData = await fetchSheetData(selectedSheet, '売上管理表', 'AL3:AL');
+    const amData = await fetchSheetData(selectedSheet, '売上管理表', 'AM3:AM');
+    const akData = await fetchSheetData(selectedSheet, '売上管理表', 'AK3:AK');
+    const dapData = await fetchSheetData(selectedSheet, '売上管理表', 'D3:AQ');
+
+    const processedEntries = rows.map((row, index) => ({
+      index: index + 3, // 3 から始める
+      dColumn: dapData[index]?.[0] || '', // ✅ D列（注文日）
+      kColumn: row[0] || '',
+      sColumn: row[8] || '',
+      alColumn: alData[index]?.[0] || '',
+      amColumn: amData[index]?.[0] || '',
+      akColumn: akData[index]?.[0] || '',
+      dColumn: dapData[index]?.[0] || '',
+      nColumn: dapData[index]?.[10] || '',
+      yColumn: dapData[index]?.[21] || '',
+      xColumn: dapData[index]?.[20] || '',
+      wColumn: dapData[index]?.[19] || '',
+      tColumn: dapData[index]?.[16] || '',
+      uColumn: dapData[index]?.[17] || '',
+      aqColumn: dapData[index]?.[39] || '',
+      aaColumn: dapData[index]?.[23] || '',
+    }));
+    // ✅ D列（注文日）を新しい順に並び替える
+    processedEntries.sort((a, b) => {
+      const dateA = new Date(a.dColumn);
+      const dateB = new Date(b.dColumn);
+      return dateB - dateA; // 新しい日付が上に来るようにソート
+    });
+
+    return processedEntries;
+  } catch (error) {
+    console.error('スプレッドシート取得エラー:', error);
+    throw new Error('データ取得に失敗しました。');
+  }
+};
+
+// 📌 入力バリデーションをチェック
+export const validateInputFields = (inputs) => {
+  const { D, N, S, T, U, W, X, Y, AQ } = inputs;
+  if (S === 'らくらくメルカリ便' || S === 'ゆうパケットポスト') {
+    if (!D || !N || !S || !AQ) {
+      return '必須項目が入力されていません。';
+    }
+  } else {
+    if (!D || !N || !S || !T || !W || !X || !Y || !AQ) {
+      return '必須項目が入力されていません。';
+    }
+  }
+  return null;
+};
+
+// 📌 識別番号で該当する行を探す
+export const findMatchingRow = async (selectedSheet, identifierValue) => {
+  try {
+    const response = await fetchSheetData(selectedSheet, '入庫管理表', 'X:Y');
+    const rows = response || [];
+    const matchedRow = rows.find((row) => row[0] === identifierValue);
+
+    return matchedRow ? matchedRow[1] || '' : ''; // V列の値を返す
+  } catch (error) {
+    console.error('識別番号検索エラー:', error);
+    return '';
+  }
+};
+
+// 📌 配送タイプ設定
+export const setDeliveryType = (type, setAdditionalInputs, setDisableFields) => {
+  setAdditionalInputs((prev) => ({ ...prev, S: type }));
+  setDisableFields(['T', 'U', 'W', 'X', 'Y']); // 無効化対象
+};
+
+// 📌 フィールドの有効化
+export const enableFields = (setDisableFields) => {
+  setDisableFields([]);
+};
