@@ -160,10 +160,12 @@ const handleInput = async () => {
       return;
     }
 
-    // **在庫切れ (AKが0) の場合 → アラートを表示しつつ処理を継続**
+    // **在庫切れ (AKが0) の場合 → 5秒間オーバーレイで表示**
     if (ak === '0') {
-      setAlertMessage('在庫切れになりました', false); // グリーン（継続）
-      setTimeout(() => setAlertMessage(null), 3000);
+      setSuccessMessage('在庫が0になりました!【出品停止】でご連絡お願いします】');
+      
+      // **5秒後にアラートを消す**
+      setTimeout(() => setSuccessMessage(null), 5000);
     }
 
     // 追加入力フィールドを表示
@@ -180,6 +182,8 @@ const handleInput = async () => {
     setIsProcessing(false);
   }
 };
+
+
 
 const deleteRow = async (selectedSheet, rowIndex) => {
   try {
