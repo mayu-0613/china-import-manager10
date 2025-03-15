@@ -154,7 +154,7 @@ const handleInput = async () => {
     // **出品名が空白 (ALが空) の場合 → データ削除して処理を中断**
     if (!al) {
       await deleteRow(selectedSheet, lastFilledRowIndex);
-      setAlertMessage('出品名に誤りがあります', true); // 赤（エラー）
+      setAlertMessage('出品名に誤りがあります。管理者にご連絡下さい。', true); // 赤（エラー）
       setTimeout(() => setAlertMessage(null), 3000);
       setIsProcessing(false);
       return;
