@@ -118,8 +118,17 @@ const SearchComponent = ({ accessToken }) => {
             {results.map((row, index) => (
               <tr key={index}>
                 <td><input type="checkbox" checked={row[43] === "TRUE"} readOnly /></td>
-                <td><input type="checkbox" checked={row[44] === "TRUE"} readOnly /></td>
-                <td><input type="checkbox" checked={row[88] === "TRUE"} readOnly /></td>
+                <td style={{ backgroundColor: row[88] === "TRUE" ? "#d3d3d3" : "transparent" }}>
+  <input
+    type="checkbox"
+    checked={row[44] === "TRUE"}
+    readOnly
+    disabled={row[88] === "TRUE"}
+  />
+</td>
+      <td>
+        <input type="checkbox" checked={row[88] === "TRUE"} readOnly />
+      </td>
                 <td>{row[38]}</td>
                 <td>{row[40]}</td>
                 <td>{row[41]}</td>
