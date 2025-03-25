@@ -35,7 +35,7 @@ const SearchComponent = ({ accessToken }) => {
     setStatusMessage("データを取得中...");
 
     const spreadsheetId = sheetIds[selectedSheet];
-    const mainRange = "売上管理表!A2:AS1000";
+    const mainRange = "売上管理表!A2:CK10000";
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${mainRange}?key=${apiKey}`;
 
     try {
@@ -95,6 +95,7 @@ const SearchComponent = ({ accessToken }) => {
             <tr>
               <th>確認</th>
               <th>発送</th>
+              <th>QR読み込み依頼</th>
               <th>発送日</th>
               <th>追跡番号</th>
               <th>配送会社</th>
@@ -107,7 +108,7 @@ const SearchComponent = ({ accessToken }) => {
               <th>お届け先市町村名</th>
               <th>お届け先住所1</th>
               <th>お届け先住所2</th>
-              <th>Shos</th>
+              <th>Shops</th>
               <th>現在の在庫数</th>
               <th>発送代行ID</th>
               <th>担当者</th>
@@ -118,6 +119,7 @@ const SearchComponent = ({ accessToken }) => {
               <tr key={index}>
                 <td><input type="checkbox" checked={row[43] === "TRUE"} readOnly /></td>
                 <td><input type="checkbox" checked={row[44] === "TRUE"} readOnly /></td>
+                <td><input type="checkbox" checked={row[88] === "TRUE"} readOnly /></td>
                 <td>{row[38]}</td>
                 <td>{row[40]}</td>
                 <td>{row[41]}</td>
