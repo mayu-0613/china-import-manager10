@@ -117,17 +117,28 @@ const SearchComponent = ({ accessToken }) => {
           <tbody>
             {results.map((row, index) => (
               <tr key={index}>
-                <td><input type="checkbox" checked={row[43] === "TRUE"} readOnly /></td>
-                <td style={{ backgroundColor: row[88] === "TRUE" ? "#d3d3d3" : "transparent" }}>
-  <input
-    type="checkbox"
-    checked={row[44] === "TRUE"}
-    readOnly
-    disabled={row[88] === "TRUE"}
-  />
-</td>
       <td>
-        <input type="checkbox" checked={row[88] === "TRUE"} readOnly />
+        <input type="checkbox" checked={row[43] === "TRUE"} readOnly />
+      </td>
+
+      {/* ✅ 44：88がTRUEならグレー */}
+      <td style={{ backgroundColor: row[88] === "TRUE" ? "#d3d3d3" : "transparent" }}>
+        <input
+          type="checkbox"
+          checked={row[44] === "TRUE"}
+          readOnly
+          disabled={row[88] === "TRUE"}
+        />
+      </td>
+
+      {/* ✅ 88：44がTRUEならグレー */}
+      <td style={{ backgroundColor: row[44] === "TRUE" ? "#d3d3d3" : "transparent" }}>
+        <input
+          type="checkbox"
+          checked={row[88] === "TRUE"}
+          readOnly
+          disabled={row[44] === "TRUE"}
+        />
       </td>
                 <td>{row[38]}</td>
                 <td>{row[40]}</td>
