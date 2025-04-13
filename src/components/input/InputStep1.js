@@ -1,7 +1,7 @@
 // InputStep1.js
 import React from 'react';
-import InputField from './InputField';
-import { appendSheetData, fetchRowData, deleteRow } from '../utils/utils';
+import InputField from '../InputField';
+import { appendSheetData, fetchRowData, deleteRow } from '../../utils/utils';
 
 const InputStep1 = ({
   selectedSheet,

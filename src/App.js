@@ -1,6 +1,6 @@
 import AuthComponent from "./components/AuthComponent";
 import SearchComponent from "./components/SearchComponent";
-import InputComponent from "./components/InputComponent";
+import InputComponent from "./components/input/InputComponent";
 import ComparisonComponent from "./components/ComparisonComponent";
 import ShippingRequestComponent from "./components/ShippingRequestComponent";
 import React, { useState } from "react"; // ✅ useState を React から読み込む

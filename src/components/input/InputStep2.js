@@ -1,7 +1,7 @@
 // InputStep2.js
 import React from 'react';
-import AdditionalInputs from './AdditionalInputs';
-import { initializeInputs, updateBatchData } from '../utils/utils';
+import AdditionalInputs from '../AdditionalInputs';
+import { initializeInputs, updateBatchData } from '../../utils/utils';
 
 const InputStep2 = ({
   additionalInputs,

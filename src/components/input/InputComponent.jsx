@@ -1,12 +1,14 @@
 // InputComponent.jsx
+import axios from 'axios';
 import React, { useState, useEffect, useCallback } from 'react';
-import SheetSelector from './SheetSelector';
+import SheetSelector from '../SheetSelector';
 import InputStep1 from './InputStep1';
 import InputStep2 from './InputStep2';
-import EditForm from './EditForm';
-import RecentEntriesTable from './RecentEntriesTable';
-import AlertMessage from './AlertMessage';
-import SuccessOverlay from './SuccessOverlay';
+import EditForm from '../EditForm';
+import RecentEntriesTable from '../RecentEntriesTable';
+import AlertMessage from '../AlertMessage';
+import SuccessOverlay from '../common/SuccessOverlay';
+import DeleteModal from '../common/DeleteModal';
 import {
   fetchSheetData,
   getSheetIds,
@@ -16,7 +18,7 @@ import {
   updateBatchData,
   deleteRow,
   getPlaceholders,
-} from '../utils/utils';
+} from '../../utils/utils';
 
 const InputComponent = ({ accessToken }) => {
   const [step, setStep] = useState(1);
@@ -33,6 +35,8 @@ const InputComponent = ({ accessToken }) => {
   const [recentEntries, setRecentEntries] = useState([]);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const [editingData, setEditingData] = useState({});
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteTargetRowIndex, setDeleteTargetRowIndex] = useState(null);
   const placeholders = getPlaceholders();
 
   const fetchRecentEntries = useCallback(async () => {
@@ -118,6 +122,66 @@ const InputComponent = ({ accessToken }) => {
     }
   };
 
+  const handleShowDeleteModal = (rowIndex) => {
+    setDeleteTargetRowIndex(rowIndex);
+    setDeleteModalVisible(true);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+    setDeleteTargetRowIndex(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsProcessing(true);
+      const spreadsheetId = getSheetIds()[selectedSheet];
+      const sheetName = '売上管理表';
+
+      const sheetResponse = await axios.get(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      const sheet = sheetResponse.data.sheets.find((s) => s.properties.title === sheetName);
+      if (!sheet) throw new Error(`Sheet with name "${sheetName}" not found`);
+
+      const request = {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: sheet.properties.sheetId,
+                dimension: 'ROWS',
+                startIndex: deleteTargetRowIndex - 1,
+                endIndex: deleteTargetRowIndex,
+              },
+            },
+          },
+        ],
+      };
+
+      await axios.post(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+        request,
+        {
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        }
+      );
+
+      setSuccessMessage('行の削除が完了しました！');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      fetchRecentEntries();
+    } catch (error) {
+      setAlertMessage('行の削除に失敗しました。');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+      setDeleteModalVisible(false);
+    }
+  };
+
   return (
     <div>
       <AlertMessage message={alertMessage} isProcessing={isProcessing} />
@@ -152,6 +216,7 @@ const InputComponent = ({ accessToken }) => {
       <RecentEntriesTable
         recentEntries={recentEntries}
         handleEdit={handleEdit}
+        handleDeleteRow={handleShowDeleteModal}
         isProcessing={isProcessing}
       />
       {editingRowIndex !== null && (
@@ -163,7 +228,12 @@ const InputComponent = ({ accessToken }) => {
           isProcessing={isProcessing}
         />
       )}
-      {successMessage && <SuccessOverlay message={successMessage} />}
+      <SuccessOverlay message={successMessage} />
+      <DeleteModal
+        isVisible={isDeleteModalVisible}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </div>
   );
 };
