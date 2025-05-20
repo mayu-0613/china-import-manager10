@@ -75,25 +75,53 @@ export const appendSheetData = async (selectedSheet, sheetName, column, value, a
   const range = `${sheetName}!${column}:${column}`;
 
   try {
-    const response = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    // 1. 対象列の最後の行番号を取得
+    const response = await axios.get(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
 
-    const lastRowIndex = response.data.values?.length + 1 || 1;
+    const lastRowIndex = (response.data.values?.length || 0) + 1;
     const targetRange = `${sheetName}!${column}${lastRowIndex}`;
 
+    // 2. K列にデータ追加
     await axios.put(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${targetRange}?valueInputOption=USER_ENTERED`,
       { values: [[value]] },
-      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
-    return lastRowIndex;
+    // 3. AK:AL列の同じ行を取得
+    const akAlRange = `${sheetName}!AK${lastRowIndex}:AL${lastRowIndex}`;
+    const akAlResponse = await axios.get(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${akAlRange}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    const ak = akAlResponse.data.values?.[0]?.[0] ?? '';
+    const al = akAlResponse.data.values?.[0]?.[1] ?? '';
+
+    // 4. まとめて返す
+    return {
+      rowIndex: lastRowIndex,
+      ak,
+      al,
+    };
   } catch (error) {
-    console.error('データ追加エラー:', error);
+    console.error('データ追加または取得エラー:', error);
     throw new Error('データの追加に失敗しました。');
   }
 };
+
 
 // 指定行のデータを取得
 export const fetchRowData = async (selectedSheet, sheetName, rowIndex, range) => {
@@ -267,3 +295,5 @@ export const setDeliveryType = (type, setAdditionalInputs, setDisableFields) => 
 export const enableFields = (setDisableFields) => {
   setDisableFields([]);
 };
+
+
