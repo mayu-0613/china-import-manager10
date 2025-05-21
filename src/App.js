@@ -16,7 +16,7 @@ const AppContent = ({ accessToken }) => {
 
       <nav className="tabs">
         <Link to="/search">
-          <button className={currentPath === "/search" ? "active" : ""}>検索</button>
+          <button className={currentPath === "/search" ? "active" : ""}>検索・編集</button>
         </Link>
         <Link to="/input">
           <button className={currentPath === "/input" ? "active" : ""}>入力</button>
