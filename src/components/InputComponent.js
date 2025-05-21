@@ -389,7 +389,7 @@ const deleteRow = async (selectedSheet, rowIndex) => {
           navigate('/search', { state: { keyword: inputValue } });
         }}
       >
-        いいえ（検索・編集タブへ移動）
+        いいえ（検索・編集タブへ移動）　※このまま画面を閉じても大丈夫です
       </button>
     </div>
   </div>
