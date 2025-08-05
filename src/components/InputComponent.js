@@ -36,6 +36,7 @@ const InputComponent = ({ accessToken }) => {
     const { D, N, S, T, U, W, X, Y, AQ } = additionalInputs;
   
     console.log('Validating inputs:', { D, N, S, T, U, W, X, Y, AQ }); // デバッグ用
+    
   
     if (S === 'らくらくメルカリ便' || S === 'ゆうパケットポスト') {
       if (!D || !N || !S || !AQ) {
@@ -91,9 +92,10 @@ const handleInput = async () => {
      inputValue,
      accessToken
    );
+   console.log('appendSheetData result:', { rowIndex, ak, al });
 
     // **在庫がない (AKが-1) の場合 → データ削除して処理を中断**
-    if (ak === '-1') {
+    if (ak === '0') {
       await deleteRow(selectedSheet, rowIndex);
       setAlertMessage('在庫がありません😢', true); // 赤（エラー）
       setTimeout(() => setAlertMessage(null), 3000);
@@ -113,13 +115,14 @@ const handleInput = async () => {
       return;
     }
 
-    // **在庫切れ (AKが0) の場合 → 5秒間オーバーレイで表示**
-    if (ak === '0') {
-      setSuccessMessage('在庫が0になりました✨');
+// ⭐⭐ ここに入れる ⭐⭐
+const akNumber = parseFloat(ak);
 
-      // **3秒後にアラートを消す**
-      setTimeout(() => setSuccessMessage(null), 3000);
-    }
+// 在庫切れ (AKが1未満) の場合 → 5秒間オーバーレイで表示
+if (!isNaN(akNumber) && akNumber < 1) {
+  setSuccessMessage('在庫が1未満になりました✨');
+  setTimeout(() => setSuccessMessage(null), 3000);
+}
 
     // 追加入力フィールドを表示
     setShowAdditionalInputs(true);

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 担当者オプション
 
-export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原","平澤","児島","重松","下島","土井","西山","西田","原田","lily","榊原","上森","山田","りえぷあ","高原","井手","浅野","長田","宮沢","西依","鈴木","Amazon","Yahoo"];
+export const AQ_OPTIONS = ["矢崎", "奥村", "森栄", "新野", "冨永", "千田", "阿部", "石橋", "塚原","平澤","児島","重松","下島","土井","西山","西田","原田","lily","榊原","上森","山田","りえぷあ","高原","井手","浅野","長田","宮沢","西依","鈴木","根本","山城","古谷","森本","森岡","河住杏",Amazon","Yahoo"];
 
 // 販売チャネルオプション
 export const AA_OPTIONS = ["", "Shops", "yahoo", "ラクマ", "ヤフオク", "Amazon","Qoo10"];
@@ -97,6 +97,9 @@ export const appendSheetData = async (selectedSheet, sheetName, column, value, a
         },
       }
     );
+
+    // ⭐3秒待つ
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // 3. AK:AL列の同じ行を取得
     const akAlRange = `${sheetName}!AK${lastRowIndex}:AL${lastRowIndex}`;
