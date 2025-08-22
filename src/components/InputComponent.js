@@ -94,14 +94,15 @@ const handleInput = async () => {
    );
    console.log('appendSheetData result:', { rowIndex, ak, al });
 
-    // **在庫がない (AKが-1) の場合 → データ削除して処理を中断**
-    if (ak === '0') {
-      await deleteRow(selectedSheet, rowIndex);
-      setAlertMessage('在庫がありません😢', true); // 赤（エラー）
-      setTimeout(() => setAlertMessage(null), 3000);
-      setIsProcessing(false);
-      return;
-    }
+// **在庫がない (AKが0未満) の場合 → データ削除して処理を中断**
+if (!isNaN(parseFloat(ak)) && parseFloat(ak) < 0) {
+  await deleteRow(selectedSheet, rowIndex);
+  setAlertMessage('在庫がありません😢', true);
+  setTimeout(() => setAlertMessage(null), 3000);
+  setIsProcessing(false);
+  return;
+}
+
 
     // **出品名が空白 (ALが空) の場合 → データ削除して処理を中断**
     if (!al) {
